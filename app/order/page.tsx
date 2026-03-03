@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback, CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { formatPrice } from "@/lib/utils";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, X, Lock,
   Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone,
@@ -11,17 +12,12 @@ import {
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface FormState {
-  // Step 1
   productType: string;
   productSize: string;
-  // Step 2
   tier: string;
-  // Step 3
   mediaFiles: File[];
-  // Step 4
   occasion: string;
   wishText: string;
-  // Step 5
   customerName: string;
   customerPhone: string;
   addressLine1: string;
@@ -42,15 +38,32 @@ const INITIAL: FormState = {
 /* ─── Pricing ───────────────────────────────────────────── */
 const BASE_PRICES: Record<string, number> = {
   "T-Shirt": 899, "Beer Mug": 799, Hoodie: 1299, Cushion: 699,
+  "Coffee Mug": 699, "Water Bottle": 899, "Face Mask": 499,
 };
 const NFC_ADDON = 800;
 function getPrice(product: string, tier: string) {
   const base = BASE_PRICES[product] ?? 0;
   return tier === "NFC VIP" ? base + NFC_ADDON : base;
 }
-function formatINR(n: number) {
-  return `₹${n.toLocaleString("en-IN")}`;
-}
+
+/* ─── Module-scope constants ──────────────────────────────── */
+// Products that require a size selection
+const PRODUCTS_WITH_SIZE: readonly string[] = ["T-Shirt", "Hoodie"];
+
+// Single source of truth for product emojis (shared by Step1 + Step6)
+const PRODUCT_EMOJIS: Record<string, string> = {
+  "T-Shirt": "👕", "Beer Mug": "🍺", Hoodie: "🧥", Cushion: "🛋️",
+  "Coffee Mug": "☕", "Water Bottle": "💧", "Face Mask": "😷",
+};
+
+// Upload limits
+const MAX_FILE_MB = 50;
+const MAX_IMAGES  = 1;
+const MAX_VIDEOS  = 3;
+
+/* ─── File-type helpers (module scope — reused in Step3 + validate) ─ */
+const isPhoto = (f: File) => f.type.startsWith("image/");
+const isVideo = (f: File) => f.type.startsWith("video/");
 
 /* ─── Load Razorpay script ──────────────────────────────── */
 function loadRazorpay(): Promise<boolean> {
@@ -67,13 +80,9 @@ function loadRazorpay(): Promise<boolean> {
 declare global { interface Window { Razorpay: new (o: object) => { open(): void }; } }
 
 /* ─── Upload files via server-side API ──────────────────── */
-// Sends files as multipart FormData to /api/upload which uses the
-// SERVICE_ROLE key server-side, avoiding RLS/CORS issues entirely.
 async function uploadMedia(files: File[]): Promise<string[]> {
   const formData = new FormData();
-  for (const file of files) {
-    formData.append("files", file);
-  }
+  for (const file of files) formData.append("files", file);
   const res = await fetch("/api/upload", { method: "POST", body: formData });
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: "Upload failed" }));
@@ -99,14 +108,18 @@ const card = (selected = false): CSSProperties => ({
 
 /* ─── Step 1: Product ───────────────────────────────────── */
 function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
-  const products = [
-    { id: "T-Shirt",  emoji: "👕", price: 899,  desc: "Unisex 180 GSM cotton" },
-    { id: "Beer Mug", emoji: "🍺", price: 799,  desc: "11oz ceramic mug" },
-    { id: "Hoodie",   emoji: "🧥", price: 1299, desc: "350 GSM unisex fleece" },
-    { id: "Cushion",  emoji: "🛋️", price: 699,  desc: "30×30 cm with insert" },
+  // desc only — emoji + price derived from module-scope maps to avoid duplication
+  const products: { id: string; desc: string }[] = [
+    { id: "T-Shirt",      desc: "Unisex 180 GSM cotton" },
+    { id: "Beer Mug",     desc: "11oz ceramic mug" },
+    { id: "Hoodie",       desc: "350 GSM unisex fleece" },
+    { id: "Cushion",      desc: "30×30 cm with insert" },
+    { id: "Coffee Mug",   desc: "11oz ceramic mug" },
+    { id: "Water Bottle", desc: "750ml stainless steel" },
+    { id: "Face Mask",    desc: "Pack of 5 printed masks" },
   ];
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
-  const needsSize = ["T-Shirt", "Hoodie"].includes(form.productType);
+  const needsSize = PRODUCTS_WITH_SIZE.includes(form.productType);
 
   return (
     <div className="space-y-6">
@@ -116,19 +129,19 @@ function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState
       </div>
 
       <div className="grid grid-cols-2 gap-3">
-        {products.map(({ id, emoji, price, desc }) => (
+        {products.map(({ id, desc }) => (
           <button
             key={id}
             onClick={() => { set("productType", id); set("productSize", ""); }}
             style={card(form.productType === id)}
             className="p-4 text-left flex flex-col gap-2 hover:scale-[1.02] transition-transform"
           >
-            <span className="text-3xl">{emoji}</span>
+            <span className="text-3xl">{PRODUCT_EMOJIS[id]}</span>
             <div>
               <p className="font-bold text-white text-sm">{id}</p>
               <p className="text-xs" style={{ color: "#4A4A58" }}>{desc}</p>
             </div>
-            <p className="font-black text-sm" style={{ color: "#FFB800" }}>{formatINR(price)}</p>
+            <p className="font-black text-sm" style={{ color: "#FFB800" }}>{formatPrice(BASE_PRICES[id] ?? 0)}</p>
             {form.productType === id && (
               <CheckCircle2 size={14} className="absolute top-3 right-3" style={{ color: "#FFB800" }} />
             )}
@@ -136,7 +149,6 @@ function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState
         ))}
       </div>
 
-      {/* Size selector */}
       {needsSize && (
         <div className="space-y-2 pt-2">
           <p className="text-sm font-semibold text-white">Select Size</p>
@@ -205,7 +217,7 @@ function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v
                 <p className="font-black text-white text-lg">{id}</p>
                 <p className="text-xs mt-0.5" style={{ color: "#4A4A58" }}>{tagline}</p>
               </div>
-              <p className="text-3xl font-black" style={{ color: "#FFD700" }}>{formatINR(price)}</p>
+              <p className="text-3xl font-black" style={{ color: "#FFD700" }}>{formatPrice(price)}</p>
               <ul className="space-y-1.5">
                 {features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-xs">
@@ -225,31 +237,53 @@ function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v
 /* ─── Step 3: Media Upload ──────────────────────────────── */
 function Step3Media({ form, setFiles }: { form: FormState; setFiles: (files: File[]) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
+  const [dragging,     setDragging]     = useState(false);
+  const [rejectionMsg, setRejectionMsg] = useState("");
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
-    const newFiles = Array.from(incoming).filter((f) => {
-      if (f.size > 100 * 1024 * 1024) { alert(`${f.name} is too large (max 100 MB)`); return false; }
-      return true;
-    });
-    const combined = [...form.mediaFiles, ...newFiles].slice(0, 6);
-    setFiles(combined);
+    setRejectionMsg("");
+
+    const existing  = form.mediaFiles;
+    let imgCount    = existing.filter(isPhoto).length;
+    let vidCount    = existing.filter(isVideo).length;
+    const toAdd: File[]    = [];
+    const rejected: string[] = [];
+
+    for (const f of Array.from(incoming)) {
+      if (f.size > MAX_FILE_MB * 1024 * 1024) {
+        rejected.push(`“${f.name}” exceeds ${MAX_FILE_MB} MB`);
+        continue;
+      }
+      if (isPhoto(f)) {
+        if (imgCount >= MAX_IMAGES) { rejected.push(`“${f.name}” — only ${MAX_IMAGES} photo allowed`); continue; }
+        imgCount++;
+      } else if (isVideo(f)) {
+        if (vidCount >= MAX_VIDEOS) { rejected.push(`“${f.name}” — only ${MAX_VIDEOS} clips allowed`); continue; }
+        vidCount++;
+      } else {
+        rejected.push(`“${f.name}” — unsupported format`);
+        continue;
+      }
+      toAdd.push(f);
+    }
+
+    if (rejected.length > 0) setRejectionMsg(rejected.join(" · "));
+    if (toAdd.length  > 0) setFiles([...existing, ...toAdd]);
   }, [form.mediaFiles, setFiles]);
 
-  const remove = (i: number) => {
-    const updated = form.mediaFiles.filter((_, idx) => idx !== i);
-    setFiles(updated);
-  };
+  const remove = (i: number) => setFiles(form.mediaFiles.filter((_, idx) => idx !== i));
 
-  const isPhoto = (f: File) => f.type.startsWith("image/");
+  // Derived counters — negligible cost on a max-4-item array
+  const photoCount = form.mediaFiles.filter(isPhoto).length;
+  const videoCount = form.mediaFiles.filter(isVideo).length;
 
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-2xl font-black text-white mb-1">Upload Your Memories</h2>
         <p className="text-sm" style={{ color: "#4A4A58" }}>
-          At least 1 photo required. Add up to 5 video clips. Max 100 MB per file.
+          1 selfie photo required (max {MAX_FILE_MB} MB) + up to {MAX_VIDEOS} video clips (max {MAX_FILE_MB} MB each)
         </p>
       </div>
 
@@ -271,10 +305,19 @@ function Step3Media({ form, setFiles }: { form: FormState; setFiles: (files: Fil
         <div className="text-center">
           <p className="font-semibold text-white text-sm">Click to upload or drag & drop</p>
           <p className="text-xs mt-0.5" style={{ color: "#4A4A58" }}>
-            JPG, PNG, MP4, MOV — up to 6 files
+            JPG, PNG, MP4, MOV
           </p>
         </div>
       </button>
+
+      {/* Tip + counters row */}
+      <div className="flex items-center justify-between text-xs">
+        <span style={{ color: "#FFB800" }}>Short vertical clips (10–25 sec) work best 📱</span>
+        <span className="flex gap-3" style={{ color: "#4A4A58" }}>
+          <span style={{ color: photoCount >= MAX_IMAGES ? "#22c55e" : "#FFB800" }}>Photos: {photoCount}/{MAX_IMAGES}</span>
+          <span style={{ color: videoCount >= MAX_VIDEOS ? "#22c55e" : "#FFB800" }}>Videos: {videoCount}/{MAX_VIDEOS}</span>
+        </span>
+      </div>
 
       <input
         ref={inputRef}
@@ -300,7 +343,7 @@ function Step3Media({ form, setFiles }: { form: FormState; setFiles: (files: Fil
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm text-white truncate">{file.name}</p>
-                <p className="text-xs" style={{ color: "#4A4A58" }}>{(file.size / (1024 * 1024)).toFixed(1)} MB</p>
+                <p className="text-xs" style={{ color: "#4A4A58" }}>{(file.size / (1024 * 1024)).toFixed(1)} MB</p>
               </div>
               <button onClick={() => remove(i)} className="text-dark-400 hover:text-white transition-colors">
                 <X size={16} />
@@ -310,9 +353,20 @@ function Step3Media({ form, setFiles }: { form: FormState; setFiles: (files: Fil
         </div>
       )}
 
-      {form.mediaFiles.length === 0 && (
-        <div className="flex items-center gap-2 text-xs p-3 rounded-xl" style={{ background: "rgba(255,107,53,0.08)", border: "1px solid rgba(255,107,53,0.2)", color: "#FF9A3C" }}>
-          <AlertCircle size={14} /> At least one photo is required to continue.
+      {/* Rejection message */}
+      {rejectionMsg && (
+        <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
+          style={{ background: "rgba(255,107,53,0.08)", border: "1px solid rgba(255,107,53,0.2)", color: "#FF9A3C" }}>
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          <span>{rejectionMsg}</span>
+        </div>
+      )}
+
+      {/* Minimum-photo reminder */}
+      {photoCount === 0 && (
+        <div className="flex items-center gap-2 text-xs p-3 rounded-xl"
+          style={{ background: "rgba(255,107,53,0.08)", border: "1px solid rgba(255,107,53,0.2)", color: "#FF9A3C" }}>
+          <AlertCircle size={14} /> At least one selfie photo is required to continue.
         </div>
       )}
     </div>
@@ -383,9 +437,7 @@ function Step4Occasion({ form, set }: { form: FormState; set: (k: keyof FormStat
 }
 
 /* ─── Field — module-scope to prevent remount on every render ─
-   BUG FIX: was defined inside Step5Shipping, causing React to
-   treat it as a new component type on each re-render and
-   unmount/remount the <input>, losing focus on every keystroke. */
+   (Defined here once, shared by Step5Shipping) */
 function Field({
   label, field, placeholder, type = "text", icon: Icon, form, set,
 }: {
@@ -427,15 +479,14 @@ function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormStat
         <h2 className="text-2xl font-black text-white mb-1">Where Should We Ship?</h2>
         <p className="text-sm" style={{ color: "#4A4A58" }}>We ship across India. Typically 2–3 days after production.</p>
       </div>
-
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Full Name" field="customerName" placeholder="Priya Sharma" icon={User} form={form} set={set} />
-        <Field label="Mobile Number" field="customerPhone" placeholder="+91 98765 43210" type="tel" icon={Phone} form={form} set={set} />
+        <Field label="Full Name"     field="customerName"  placeholder="Priya Sharma"       icon={User}  form={form} set={set} />
+        <Field label="Mobile Number" field="customerPhone" placeholder="+91 98765 43210"    type="tel" icon={Phone} form={form} set={set} />
       </div>
       <Field label="Address Line 1" field="addressLine1" placeholder="Flat no, Street, Locality" icon={MapPin} form={form} set={set} />
       <div className="grid grid-cols-3 gap-3">
-        <Field label="City" field="city" placeholder="Mumbai" icon={MapPin} form={form} set={set} />
-        <Field label="State" field="state" placeholder="Maharashtra" icon={MapPin} form={form} set={set} />
+        <Field label="City"    field="city"    placeholder="Mumbai"      icon={MapPin} form={form} set={set} />
+        <Field label="State"   field="state"   placeholder="Maharashtra" icon={MapPin} form={form} set={set} />
         <Field label="Pincode" field="pincode" placeholder="400001" type="number" icon={MapPin} form={form} set={set} />
       </div>
     </div>
@@ -452,7 +503,6 @@ function Step6Review({
   error: string | null;
 }) {
   const price = getPrice(form.productType, form.tier);
-  const productEmojis: Record<string, string> = { "T-Shirt": "👕", "Beer Mug": "🍺", Hoodie: "🧥", Cushion: "🛋️" };
 
   const Row = ({ label, value }: { label: string; value: string }) => (
     <div className="flex justify-between items-start gap-4 text-sm py-2.5 border-b" style={{ borderColor: "rgba(255,184,0,0.06)" }}>
@@ -468,24 +518,20 @@ function Step6Review({
         <p className="text-sm" style={{ color: "#4A4A58" }}>Everything looks good? Let's make this memory permanent.</p>
       </div>
 
-      {/* Summary card */}
       <div className="rounded-2xl p-5 space-y-1"
         style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.12)" }}>
-        <Row label="Product" value={`${productEmojis[form.productType] ?? ""} ${form.productType}${form.productSize ? ` (${form.productSize})` : ""}`} />
-        <Row label="Tier" value={form.tier} />
+        <Row label="Product" value={`${PRODUCT_EMOJIS[form.productType] ?? ""} ${form.productType}${form.productSize ? ` (${form.productSize})` : ""}`} />
+        <Row label="Tier"    value={form.tier} />
         {form.occasion && <Row label="Occasion" value={form.occasion} />}
-        <Row label="Media files" value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}`} />
-        <Row label="Shipping to" value={`${form.customerName}, ${form.city}, ${form.pincode}`} />
-        <Row label="Phone" value={form.customerPhone} />
-
-        {/* Total */}
+        <Row label="Media files"  value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}`} />
+        <Row label="Shipping to"  value={`${form.customerName}, ${form.city}, ${form.pincode}`} />
+        <Row label="Phone"        value={form.customerPhone} />
         <div className="flex justify-between items-center pt-3 mt-1">
           <span className="font-semibold text-white">Total</span>
-          <span className="text-2xl font-black" style={{ color: "#FFD700" }}>{formatINR(price)}</span>
+          <span className="text-2xl font-black" style={{ color: "#FFD700" }}>{formatPrice(price)}</span>
         </div>
       </div>
 
-      {/* Trust row */}
       <div className="flex flex-wrap justify-center gap-4 text-xs" style={{ color: "#333340" }}>
         {(
           [
@@ -501,7 +547,6 @@ function Step6Review({
         ))}
       </div>
 
-      {/* Dev bypass notice */}
       {process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID === "rzp_test_PLACEHOLDER" && (
         <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
           style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.2)", color: "#FFB800" }}>
@@ -510,7 +555,6 @@ function Step6Review({
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
           style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
@@ -519,7 +563,6 @@ function Step6Review({
         </div>
       )}
 
-      {/* Pay button */}
       <button
         onClick={onPay}
         disabled={!!loading}
@@ -527,15 +570,9 @@ function Step6Review({
         style={{ background: "linear-gradient(135deg, #FFD700 0%, #FFB800 50%, #FF9A3C 100%)", color: "#0A0A0B" }}
       >
         {loading ? (
-          <>
-            <Loader2 size={18} className="animate-spin" />
-            {loading}
-          </>
+          <><Loader2 size={18} className="animate-spin" />{loading}</>
         ) : (
-          <>
-            <Lock size={16} />
-            Confirm & Pay {formatINR(price)}
-          </>
+          <><Lock size={16} />Confirm & Pay {formatPrice(price)}</>
         )}
       </button>
     </div>
@@ -550,14 +587,10 @@ const STEP_LABELS = ["Product", "Tier", "Media", "Occasion", "Shipping", "Review
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="mb-8">
-      {/* Label */}
       <div className="flex justify-between items-center mb-3">
-        <span className="text-xs font-semibold" style={{ color: "#FFB800" }}>
-          Step {step} of {STEP_LABELS.length}
-        </span>
+        <span className="text-xs font-semibold" style={{ color: "#FFB800" }}>Step {step} of {STEP_LABELS.length}</span>
         <span className="text-xs font-semibold text-white">{STEP_LABELS[step - 1]}</span>
       </div>
-      {/* Bar */}
       <div className="h-1.5 rounded-full" style={{ background: "rgba(255,184,0,0.1)" }}>
         <div
           className="h-full rounded-full transition-all duration-500"
@@ -567,7 +600,6 @@ function ProgressBar({ step }: { step: number }) {
           }}
         />
       </div>
-      {/* Dots */}
       <div className="flex justify-between mt-2">
         {STEP_LABELS.map((_, i) => (
           <div
@@ -589,31 +621,31 @@ function ProgressBar({ step }: { step: number }) {
 ═══════════════════════════════════════════════════════════ */
 export default function OrderPage() {
   const router = useRouter();
-  const [step, setStep] = useState(1);
-  const [form, setFormState] = useState<FormState>(INITIAL);
-  const [loading, setLoading] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [step, setStep]           = useState(1);
+  const [form, setFormState]       = useState<FormState>(INITIAL);
+  const [loading, setLoading]      = useState<string | null>(null);
+  const [error,   setError]        = useState<string | null>(null);
 
-  const set = (key: keyof FormState, value: string) =>
+  const set      = (key: keyof FormState, value: string) =>
     setFormState((prev) => ({ ...prev, [key]: value }));
-
   const setFiles = (files: File[]) =>
     setFormState((prev) => ({ ...prev, mediaFiles: files }));
 
-  /* ── Validation per step ───────────────────────────── */
   const validate = (): string | null => {
     switch (step) {
       case 1:
         if (!form.productType) return "Please select a product.";
-        if (["T-Shirt", "Hoodie"].includes(form.productType) && !form.productSize)
+        if (PRODUCTS_WITH_SIZE.includes(form.productType) && !form.productSize)
           return "Please select a size.";
         return null;
       case 2:
         return form.tier ? null : "Please select a tier.";
-      case 3:
-        return form.mediaFiles.length === 0 ? "Please upload at least one photo." : null;
+      case 3: {
+        const hasPhoto = form.mediaFiles.some(isPhoto);
+        return !hasPhoto ? "Please upload at least one selfie photo." : null;
+      }
       case 4:
-        return null; // optional
+        return null;
       case 5: {
         const required = [form.customerName, form.customerPhone, form.addressLine1, form.city, form.state, form.pincode];
         return required.some((v) => !v.trim()) ? "Please fill all shipping fields." : null;
@@ -632,80 +664,58 @@ export default function OrderPage() {
 
   const back = () => { setError(null); setStep((s) => s - 1); };
 
-  /* ── Payment handler ───────────────────────────────── */
   const handlePay = async () => {
     setError(null);
     try {
-      /* 1. Upload media files */
       setLoading("Uploading your memories…");
       let mediaUrls: string[] = [];
-      if (form.mediaFiles.length > 0) {
-        mediaUrls = await uploadMedia(form.mediaFiles);
-      }
+      if (form.mediaFiles.length > 0) mediaUrls = await uploadMedia(form.mediaFiles);
 
-      /* 2. Call checkout API */
       setLoading("Creating your order…");
       const shippingAddress = `${form.addressLine1}, ${form.city}, ${form.state} - ${form.pincode}`;
-      const occasionNote = [form.occasion, form.wishText].filter(Boolean).join(" | ");
+      const occasionNote    = [form.occasion, form.wishText].filter(Boolean).join(" | ");
 
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerName: form.customerName,
-          customerPhone: form.customerPhone,
-          shippingAddress,
-          productType: form.productType,
-          productSize: form.productSize || null,
-          tier: form.tier,
-          occasion: occasionNote || null,
-          mediaUrls,
+          customerName: form.customerName, customerPhone: form.customerPhone,
+          shippingAddress, productType: form.productType,
+          productSize: form.productSize || null, tier: form.tier,
+          occasion: occasionNote || null, mediaUrls,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed");
 
-      /* 3a. Dev bypass — skip Razorpay */
       if (data.bypass) {
         setLoading(null);
-        router.push(
-          `/order/success?slug=${data.secureSlug}&product=${encodeURIComponent(form.productType)}&tier=${encodeURIComponent(form.tier)}&name=${encodeURIComponent(form.customerName)}`
-        );
+        router.push(`/order/success?slug=${data.secureSlug}&product=${encodeURIComponent(form.productType)}&tier=${encodeURIComponent(form.tier)}&name=${encodeURIComponent(form.customerName)}`);
         return;
       }
 
-      /* 3b. Load Razorpay & open modal */
       setLoading("Opening payment…");
       const loaded = await loadRazorpay();
       if (!loaded) throw new Error("Could not load payment gateway. Please try again.");
 
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: data.amount,
-        currency: data.currency,
+        amount: data.amount, currency: data.currency,
         name: "GiftUnlock.in",
         description: `${form.productType} — ${form.tier}`,
         order_id: data.orderId,
-        prefill: {
-          name: form.customerName,
-          contact: form.customerPhone,
-        },
+        prefill: { name: form.customerName, contact: form.customerPhone },
         theme: { color: "#FFB800" },
-        modal: {
-          ondismiss: () => setLoading(null),
-        },
+        modal: { ondismiss: () => setLoading(null) },
         handler: () => {
           setLoading(null);
-          router.push(
-            `/order/success?slug=${data.secureSlug}&product=${encodeURIComponent(form.productType)}&tier=${encodeURIComponent(form.tier)}&name=${encodeURIComponent(form.customerName)}`
-          );
+          router.push(`/order/success?slug=${data.secureSlug}&product=${encodeURIComponent(form.productType)}&tier=${encodeURIComponent(form.tier)}&name=${encodeURIComponent(form.customerName)}`);
         },
       };
 
       setLoading(null);
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+      new window.Razorpay(options).open();
     } catch (err) {
       setLoading(null);
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -715,17 +725,16 @@ export default function OrderPage() {
   const renderStep = () => {
     switch (step) {
       case 1: return <Step1Product form={form} set={set} />;
-      case 2: return <Step2Tier form={form} set={set} />;
-      case 3: return <Step3Media form={form} setFiles={setFiles} />;
+      case 2: return <Step2Tier    form={form} set={set} />;
+      case 3: return <Step3Media   form={form} setFiles={setFiles} />;
       case 4: return <Step4Occasion form={form} set={set} />;
       case 5: return <Step5Shipping form={form} set={set} />;
-      case 6: return <Step6Review form={form} onPay={handlePay} loading={loading} error={error} />;
+      case 6: return <Step6Review  form={form} onPay={handlePay} loading={loading} error={error} />;
     }
   };
 
   return (
     <main className="min-h-screen bg-dark-900 text-white">
-      {/* Header */}
       <div
         className="sticky top-0 z-40 px-4 py-3 flex items-center justify-between"
         style={{ background: "rgba(10,10,11,0.95)", backdropFilter: "blur(12px)", borderBottom: "1px solid rgba(255,184,0,0.08)" }}
@@ -746,30 +755,17 @@ export default function OrderPage() {
             <Lock size={11} style={{ color: "#0A0A0B" }} />
           </div>
           <span className="font-bold text-sm">
-            Gift<span style={{
-              background: "linear-gradient(135deg, #FFD700, #FF9A3C)",
-              WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            }}>Unlock</span>
+            Gift<span style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Unlock</span>
           </span>
         </div>
-        <div className="text-xs font-semibold" style={{ color: "#4A4A58" }}>
-          {step}/{STEP_LABELS.length}
-        </div>
+        <div className="text-xs font-semibold" style={{ color: "#4A4A58" }}>{step}/{STEP_LABELS.length}</div>
       </div>
 
-      {/* Form container */}
       <div className="max-w-lg mx-auto px-4 py-8">
         <ProgressBar step={step} />
-
-        {/* Step content */}
-        <div
-          key={step}
-          style={{ animation: "fadeInUp 0.35s ease both" }}
-        >
+        <div key={step} style={{ animation: "fadeInUp 0.35s ease both" }}>
           {renderStep()}
         </div>
-
-        {/* Validation error (steps 1–5) */}
         {error && step < 6 && (
           <div className="mt-4 flex items-center gap-2 text-xs p-3 rounded-xl"
             style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
@@ -777,8 +773,6 @@ export default function OrderPage() {
             {error}
           </div>
         )}
-
-        {/* Navigation button (steps 1–5) */}
         {step < 6 && (
           <button
             onClick={next}

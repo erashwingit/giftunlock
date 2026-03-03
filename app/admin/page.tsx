@@ -5,42 +5,18 @@ import type { Order } from "@/lib/supabase";
 
 /* ── Types ─────────────────────────────────────────────── */
 interface Stats {
-  total: number;
-  paid: number;
-  pending: number;
-  failed: number;
-  nfc: number;
+  total: number; paid: number; pending: number; failed: number; nfc: number;
 }
-
 interface AdminResponse {
-  orders: Order[];
-  count: number;
-  stats: Stats | null;
-  page: number;
-  perPage: number;
+  orders: Order[]; count: number; stats: Stats | null; page: number; perPage: number;
 }
 
 /* ── Stat card ─────────────────────────────────────────── */
-function StatCard({
-  label,
-  value,
-  color,
-}: {
-  label: string;
-  value: number;
-  color: string;
-}) {
+function StatCard({ label, value, color }: { label: string; value: number; color: string }) {
   return (
-    <div
-      className="rounded-2xl p-4 space-y-1"
-      style={{
-        background: "linear-gradient(145deg, #1A1A24, #111116)",
-        border: `1px solid ${color}22`,
-      }}
-    >
-      <p className="text-xs font-bold uppercase tracking-widest" style={{ color }}>
-        {label}
-      </p>
+    <div className="rounded-2xl p-4 space-y-1"
+      style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: `1px solid ${color}22` }}>
+      <p className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{label}</p>
       <p className="text-3xl font-black text-white">{value}</p>
     </div>
   );
@@ -55,26 +31,16 @@ function StatusBadge({ status }: { status: string }) {
   };
   const style = map[status] ?? { bg: "rgba(255,255,255,0.06)", color: "#888" };
   return (
-    <span
-      className="px-2 py-0.5 rounded-full text-xs font-bold"
-      style={{ background: style.bg, color: style.color }}
-    >
+    <span className="px-2 py-0.5 rounded-full text-xs font-bold"
+      style={{ background: style.bg, color: style.color }}>
       {status}
     </span>
   );
 }
 
 /* ── Edit modal ────────────────────────────────────────── */
-function EditModal({
-  order,
-  secret,
-  onClose,
-  onSaved,
-}: {
-  order: Order;
-  secret: string;
-  onClose: () => void;
-  onSaved: (updated: Order) => void;
+function EditModal({ order, secret, onClose, onSaved }: {
+  order: Order; secret: string; onClose: () => void; onSaved: (u: Order) => void;
 }) {
   const [videoUrl, setVideoUrl] = useState(order.destination_video_url ?? "");
   const [qrUrl,    setQrUrl]    = useState(order.artistic_qr_url        ?? "");
@@ -82,108 +48,56 @@ function EditModal({
   const [err,      setErr]      = useState("");
 
   async function save() {
-    setSaving(true);
-    setErr("");
+    setSaving(true); setErr("");
     try {
       const res = await fetch(`/api/admin/orders/${order.id}`, {
-        method:  "PATCH",
-        headers: {
-          "Content-Type":    "application/json",
-          "x-admin-secret":  secret,
-        },
-        body: JSON.stringify({
-          destination_video_url: videoUrl || null,
-          artistic_qr_url:       qrUrl    || null,
-        }),
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", "x-admin-secret": secret },
+        body: JSON.stringify({ destination_video_url: videoUrl || null, artistic_qr_url: qrUrl || null }),
       });
       if (!res.ok) throw new Error(await res.text());
-      const updated = await res.json();
-      onSaved(updated);
-    } catch (e) {
-      setErr(String(e));
-    } finally {
-      setSaving(false);
-    }
+      onSaved(await res.json());
+    } catch (e) { setErr(String(e)); }
+    finally { setSaving(false); }
   }
 
+  const inputStyle = {
+    background: "#111116", border: "1px solid rgba(255,184,0,0.15)",
+  };
+
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center px-4"
-      style={{ background: "rgba(0,0,0,0.7)" }}
-      onClick={onClose}
-    >
-      <div
-        className="w-full max-w-md rounded-2xl p-6 space-y-5"
-        style={{
-          background: "#1A1A24",
-          border: "1px solid rgba(255,184,0,0.15)",
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+      style={{ background: "rgba(0,0,0,0.7)" }} onClick={onClose}>
+      <div className="w-full max-w-md rounded-2xl p-6 space-y-5"
+        style={{ background: "#1A1A24", border: "1px solid rgba(255,184,0,0.15)" }}
+        onClick={(e) => e.stopPropagation()}>
         <h2 className="text-lg font-black text-white">
           Edit Order{" "}
-          <span className="font-mono text-sm" style={{ color: "#FFB800" }}>
-            {order.secure_slug.toUpperCase()}
-          </span>
+          <span className="font-mono text-sm" style={{ color: "#FFB800" }}>{order.secure_slug.toUpperCase()}</span>
         </h2>
-
         <div className="space-y-3">
-          <label className="block space-y-1">
-            <span className="text-xs font-bold" style={{ color: "#FFB800" }}>
-              Destination Video URL
-            </span>
-            <input
-              value={videoUrl}
-              onChange={(e) => setVideoUrl(e.target.value)}
-              placeholder="https://…"
-              className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-1"
-              style={{
-                background: "#111116",
-                border: "1px solid rgba(255,184,0,0.15)",
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                ["--tw-ring-color" as any]: "#FFB800",
-              }}
-            />
-          </label>
-
-          <label className="block space-y-1">
-            <span className="text-xs font-bold" style={{ color: "#FFB800" }}>
-              Artistic QR URL
-            </span>
-            <input
-              value={qrUrl}
-              onChange={(e) => setQrUrl(e.target.value)}
-              placeholder="https://…"
-              className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none focus:ring-1"
-              style={{
-                background: "#111116",
-                border: "1px solid rgba(255,184,0,0.15)",
-              }}
-            />
-          </label>
+          {([
+            { label: "Destination Video URL", value: videoUrl, onChange: setVideoUrl },
+            { label: "Artistic QR URL",       value: qrUrl,    onChange: setQrUrl },
+          ] as { label: string; value: string; onChange: (v: string) => void }[]).map(({ label, value, onChange }) => (
+            <label key={label} className="block space-y-1">
+              <span className="text-xs font-bold" style={{ color: "#FFB800" }}>{label}</span>
+              <input value={value} onChange={(e) => onChange(e.target.value)} placeholder="https://…"
+                className="w-full rounded-xl px-3 py-2 text-sm text-white outline-none"
+                style={inputStyle} />
+            </label>
+          ))}
         </div>
-
-        {err && (
-          <p className="text-xs text-red-400">{err}</p>
-        )}
-
+        {err && <p className="text-xs text-red-400">{err}</p>}
         <div className="flex gap-3">
-          <button
-            onClick={save}
-            disabled={saving}
+          <button onClick={save} disabled={saving}
             className="flex-1 py-3 rounded-xl font-bold text-sm text-black transition-opacity"
-            style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)" }}
-          >
+            style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)" }}>
             {saving ? "Saving…" : "Save"}
           </button>
-          <button
-            onClick={onClose}
+          <button onClick={onClose}
             className="flex-1 py-3 rounded-xl font-bold text-sm"
-            style={{
-              border: "1px solid rgba(255,184,0,0.15)",
-              color: "#4A4A58",
-            }}
-          >
+            style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}>
             Cancel
           </button>
         </div>
@@ -194,96 +108,52 @@ function EditModal({
 
 /* ── Main dashboard ────────────────────────────────────── */
 export default function AdminPage() {
-  const [authed,   setAuthed]   = useState(false);
-  const [secret,   setSecret]   = useState("");
-  const [input,    setInput]    = useState("");
-  const [authErr,  setAuthErr]  = useState("");
+  const [authed,  setAuthed]  = useState(false);
+  const [secret,  setSecret]  = useState("");
+  const [input,   setInput]   = useState("");
+  const [authErr, setAuthErr] = useState("");
 
-  const [data,     setData]     = useState<AdminResponse | null>(null);
-  const [loading,  setLoading]  = useState(false);
-  const [page,     setPage]     = useState(1);
-  const [filter,   setFilter]   = useState("");
-  const [editing,  setEditing]  = useState<Order | null>(null);
+  const [data,    setData]    = useState<AdminResponse | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [page,    setPage]    = useState(1);
+  const [filter,  setFilter]  = useState("");
+  const [editing, setEditing] = useState<Order | null>(null);
 
-  /* ── Load orders ────────────────────────────────────── */
-  const load = useCallback(
-    async (pg: number, fil: string, sec: string) => {
-      setLoading(true);
-      try {
-        const qs = new URLSearchParams({ page: String(pg) });
-        if (fil) qs.set("status", fil);
-        const res = await fetch(`/api/admin/orders?${qs}`, {
-          headers: { "x-admin-secret": sec },
-        });
-        if (res.status === 401) {
-          setAuthed(false);
-          setAuthErr("Invalid secret");
-          return;
-        }
-        const json = await res.json();
-        setData(json);
-      } finally {
-        setLoading(false);
-      }
-    },
-    []
-  );
+  const load = useCallback(async (pg: number, fil: string, sec: string) => {
+    setLoading(true);
+    try {
+      const qs = new URLSearchParams({ page: String(pg) });
+      if (fil) qs.set("status", fil);
+      const res = await fetch(`/api/admin/orders?${qs}`, { headers: { "x-admin-secret": sec } });
+      if (res.status === 401) { setAuthed(false); setAuthErr("Invalid secret"); return; }
+      setData(await res.json());
+    } finally { setLoading(false); }
+  }, []);
 
-  useEffect(() => {
-    if (authed) load(page, filter, secret);
-  }, [authed, page, filter, secret, load]);
+  useEffect(() => { if (authed) load(page, filter, secret); }, [authed, page, filter, secret, load]);
 
   /* ── Password gate ──────────────────────────────────── */
   if (!authed) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center px-4"
-        style={{ background: "linear-gradient(135deg, #0A0A0B, #12121A)" }}
-      >
-        <div
-          className="w-full max-w-sm rounded-2xl p-8 space-y-6"
-          style={{
-            background: "linear-gradient(145deg, #1A1A24, #111116)",
-            border: "1px solid rgba(255,184,0,0.12)",
-          }}
-        >
+      <div className="min-h-screen flex items-center justify-center px-4"
+        style={{ background: "linear-gradient(135deg, #0A0A0B, #12121A)" }}>
+        <div className="w-full max-w-sm rounded-2xl p-8 space-y-6"
+          style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.12)" }}>
           <div className="text-center space-y-1">
-            <div
-              className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mx-auto"
-              style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)" }}
-            >
-              🔐
-            </div>
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl mx-auto"
+              style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)" }}>🔐</div>
             <h1 className="text-xl font-black text-white mt-3">Admin Dashboard</h1>
-            <p className="text-sm" style={{ color: "#4A4A58" }}>
-              GiftUnlock.in
-            </p>
+            <p className="text-sm" style={{ color: "#4A4A58" }}>GiftUnlock.in</p>
           </div>
-
-          <input
-            type="password"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) =>
-              e.key === "Enter" && (() => { setSecret(input); setAuthed(true); setAuthErr(""); })()
-            }
+          <input type="password" value={input} onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && (() => { setSecret(input); setAuthed(true); setAuthErr(""); })()}
             placeholder="Enter admin secret"
             className="w-full rounded-xl px-4 py-3 text-sm text-white outline-none"
-            style={{
-              background: "#111116",
-              border: "1px solid rgba(255,184,0,0.15)",
-            }}
-          />
-
-          {authErr && (
-            <p className="text-xs text-red-400 text-center">{authErr}</p>
-          )}
-
-          <button
-            onClick={() => { setSecret(input); setAuthed(true); setAuthErr(""); }}
+            style={{ background: "#111116", border: "1px solid rgba(255,184,0,0.15)" }} />
+          {authErr && <p className="text-xs text-red-400 text-center">{authErr}</p>}
+          <button onClick={() => { setSecret(input); setAuthed(true); setAuthErr(""); }}
             className="w-full py-3 rounded-xl font-bold text-sm text-black"
-            style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)" }}
-          >
+            style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)" }}>
             Enter Dashboard
           </button>
         </div>
@@ -299,30 +169,13 @@ export default function AdminPage() {
   const pages   = Math.ceil(total / perPage);
 
   return (
-    <div
-      className="min-h-screen text-white"
-      style={{ background: "linear-gradient(135deg, #0A0A0B, #12121A)" }}
-    >
-      {/* Edit modal */}
+    <div className="min-h-screen text-white" style={{ background: "linear-gradient(135deg, #0A0A0B, #12121A)" }}>
       {editing && (
-        <EditModal
-          order={editing}
-          secret={secret}
-          onClose={() => setEditing(null)}
+        <EditModal order={editing} secret={secret} onClose={() => setEditing(null)}
           onSaved={(updated) => {
-            setData((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    orders: prev.orders.map((o) =>
-                      o.id === updated.id ? updated : o
-                    ),
-                  }
-                : prev
-            );
+            setData((prev) => prev ? { ...prev, orders: prev.orders.map((o) => o.id === updated.id ? updated : o) } : prev);
             setEditing(null);
-          }}
-        />
+          }} />
       )}
 
       <div className="max-w-6xl mx-auto px-4 py-10 space-y-8">
@@ -330,20 +183,39 @@ export default function AdminPage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-black">GiftUnlock Admin</h1>
-            <p className="text-xs" style={{ color: "#4A4A58" }}>
-              Order management dashboard
-            </p>
+            <p className="text-xs" style={{ color: "#4A4A58" }}>Order management dashboard</p>
           </div>
-          <button
-            onClick={() => setAuthed(false)}
-            className="text-xs px-4 py-2 rounded-xl"
-            style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}
-          >
-            Sign out
-          </button>
+          <button onClick={() => setAuthed(false)} className="text-xs px-4 py-2 rounded-xl"
+            style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}>Sign out</button>
         </div>
 
-        {/* Stats */}
+        {/* Storage card */}
+        <div className="rounded-2xl p-5 space-y-3"
+          style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.1)" }}>
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "#FFB800" }}>Storage</p>
+            <a href="https://supabase.com/dashboard/project/xoifkwplilapwllzyazl/storage"
+              target="_blank" rel="noopener noreferrer"
+              className="text-xs font-semibold underline hover:opacity-80 transition-opacity"
+              style={{ color: "#FFB800" }}>
+              View in Supabase →
+            </a>
+          </div>
+          <p className="text-xs" style={{ color: "#4A4A58" }}>
+            Storage: media bucket (check Supabase for live data)
+          </p>
+          <div>
+            <div className="flex justify-between text-xs mb-1.5" style={{ color: "#4A4A58" }}>
+              <span>~X GB used</span>
+              <span>~15%</span>
+            </div>
+            <div className="w-full h-1.5 rounded-full" style={{ background: "rgba(255,184,0,0.1)" }}>
+              <div className="h-1.5 rounded-full" style={{ width: "15%", background: "linear-gradient(90deg, #FFD700, #FF9A3C)" }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Order stats */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <StatCard label="Total"   value={stats.total}   color="#FFB800" />
@@ -357,132 +229,73 @@ export default function AdminPage() {
         {/* Filters */}
         <div className="flex flex-wrap gap-2">
           {["", "paid", "pending", "failed"].map((s) => (
-            <button
-              key={s || "all"}
-              onClick={() => { setFilter(s); setPage(1); }}
+            <button key={s || "all"} onClick={() => { setFilter(s); setPage(1); }}
               className="px-4 py-1.5 rounded-full text-xs font-bold transition-all"
               style={{
                 background: filter === s ? "linear-gradient(135deg,#FFD700,#FF9A3C)" : "rgba(255,184,0,0.06)",
                 color:      filter === s ? "#0A0A0B" : "#4A4A58",
-                border:     filter === s ? "none" : "1px solid rgba(255,184,0,0.1)",
-              }}
-            >
+                border:     filter === s ? "none"    : "1px solid rgba(255,184,0,0.1)",
+              }}>
               {s || "All"}
             </button>
           ))}
-          <button
-            onClick={() => load(page, filter, secret)}
+          <button onClick={() => load(page, filter, secret)}
             className="ml-auto px-4 py-1.5 rounded-full text-xs font-bold"
-            style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}
-          >
+            style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}>
             {loading ? "…" : "↻ Refresh"}
           </button>
         </div>
 
         {/* Orders table */}
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ border: "1px solid rgba(255,184,0,0.1)" }}
-        >
+        <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,184,0,0.1)" }}>
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: "#1A1A24" }}>
-                {[
-                  "Order", "Customer", "Product", "Tier",
-                  "Status", "Video", "Created", "Actions",
-                ].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest"
-                    style={{ color: "#4A4A58" }}
-                  >
-                    {h}
-                  </th>
+                {["Order", "Customer", "Product", "Tier", "Status", "Video", "Created", "Actions"].map((h) => (
+                  <th key={h} className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest"
+                    style={{ color: "#4A4A58" }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {orders.map((order, i) => (
-                <tr
-                  key={order.id}
-                  style={{
-                    background: i % 2 === 0 ? "#111116" : "#0E0E14",
-                    borderTop: "1px solid rgba(255,184,0,0.05)",
-                  }}
-                >
-                  <td className="px-4 py-3 font-mono font-bold text-xs text-white">
-                    {order.secure_slug.toUpperCase()}
-                  </td>
+                <tr key={order.id} style={{ background: i % 2 === 0 ? "#111116" : "#0E0E14", borderTop: "1px solid rgba(255,184,0,0.05)" }}>
+                  <td className="px-4 py-3 font-mono font-bold text-xs text-white">{order.secure_slug.toUpperCase()}</td>
                   <td className="px-4 py-3">
-                    <div className="text-white text-xs font-semibold">
-                      {order.customer_name}
-                    </div>
-                    <div className="text-xs" style={{ color: "#4A4A58" }}>
-                      {order.customer_phone}
-                    </div>
+                    <div className="text-white text-xs font-semibold">{order.customer_name}</div>
+                    <div className="text-xs" style={{ color: "#4A4A58" }}>{order.customer_phone}</div>
                   </td>
                   <td className="px-4 py-3 text-xs" style={{ color: "#D0D0D8" }}>
                     {order.product_type}
-                    {order.product_size && (
-                      <span style={{ color: "#4A4A58" }}> · {order.product_size}</span>
-                    )}
+                    {order.product_size && <span style={{ color: "#4A4A58" }}> · {order.product_size}</span>}
                   </td>
                   <td className="px-4 py-3">
-                    <span
-                      className="text-xs font-bold"
-                      style={{
-                        color: order.tier === "NFC VIP" ? "#a855f7" : "#FFB800",
-                      }}
-                    >
+                    <span className="text-xs font-bold"
+                      style={{ color: order.tier === "NFC VIP" ? "#a855f7" : "#FFB800" }}>
                       {order.tier}
                     </span>
                   </td>
-                  <td className="px-4 py-3">
-                    <StatusBadge status={order.payment_status} />
-                  </td>
+                  <td className="px-4 py-3"><StatusBadge status={order.payment_status} /></td>
                   <td className="px-4 py-3 text-xs">
-                    {order.destination_video_url ? (
-                      <a
-                        href={order.destination_video_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline"
-                        style={{ color: "#FFB800" }}
-                      >
-                        View
-                      </a>
-                    ) : (
-                      <span style={{ color: "#252530" }}>—</span>
-                    )}
+                    {order.destination_video_url
+                      ? <a href={order.destination_video_url} target="_blank" rel="noopener noreferrer"
+                          className="underline" style={{ color: "#FFB800" }}>View</a>
+                      : <span style={{ color: "#252530" }}>—</span>}
                   </td>
                   <td className="px-4 py-3 text-xs" style={{ color: "#4A4A58" }}>
                     {new Date(order.created_at).toLocaleDateString("en-IN")}
                   </td>
                   <td className="px-4 py-3">
-                    <button
-                      onClick={() => setEditing(order)}
+                    <button onClick={() => setEditing(order)}
                       className="px-3 py-1 rounded-lg text-xs font-bold transition-all hover:opacity-80"
-                      style={{
-                        background: "rgba(255,184,0,0.1)",
-                        color: "#FFB800",
-                        border: "1px solid rgba(255,184,0,0.2)",
-                      }}
-                    >
+                      style={{ background: "rgba(255,184,0,0.1)", color: "#FFB800", border: "1px solid rgba(255,184,0,0.2)" }}>
                       Edit
                     </button>
                   </td>
                 </tr>
               ))}
               {orders.length === 0 && !loading && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="px-4 py-10 text-center text-sm"
-                    style={{ color: "#252530" }}
-                  >
-                    No orders found.
-                  </td>
-                </tr>
+                <tr><td colSpan={8} className="px-4 py-10 text-center text-sm" style={{ color: "#252530" }}>No orders found.</td></tr>
               )}
             </tbody>
           </table>
@@ -491,25 +304,13 @@ export default function AdminPage() {
         {/* Pagination */}
         {pages > 1 && (
           <div className="flex items-center justify-center gap-2">
-            <button
-              disabled={page === 1}
-              onClick={() => setPage((p) => p - 1)}
+            <button disabled={page === 1} onClick={() => setPage((p) => p - 1)}
               className="px-4 py-1.5 rounded-full text-xs font-bold disabled:opacity-30"
-              style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}
-            >
-              ← Prev
-            </button>
-            <span className="text-xs" style={{ color: "#4A4A58" }}>
-              Page {page} of {pages}
-            </span>
-            <button
-              disabled={page === pages}
-              onClick={() => setPage((p) => p + 1)}
+              style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}>← Prev</button>
+            <span className="text-xs" style={{ color: "#4A4A58" }}>Page {page} of {pages}</span>
+            <button disabled={page === pages} onClick={() => setPage((p) => p + 1)}
               className="px-4 py-1.5 rounded-full text-xs font-bold disabled:opacity-30"
-              style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}
-            >
-              Next →
-            </button>
+              style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}>Next →</button>
           </div>
         )}
       </div>
