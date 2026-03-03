@@ -1,14 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, CSSProperties } from "react";
+import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import {
-  ArrowRight, Star, Zap, ScanLine, Play, Heart, Clock, Truck,
-  Shield, Lock, Upload, Film, Gift, Menu, X, ChevronRight,
-  Sparkles, QrCode, Smartphone, CheckCircle2,
-} from "lucide-react";
 
-/* ─── Scroll-triggered fade-up ──────────────────────────────── */
+/* ─── Fade-up animation hook ──────────────────────────────── */
 function useFadeUp(delay = 0) {
   const ref = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
@@ -16,7 +11,12 @@ function useFadeUp(delay = 0) {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setTimeout(() => setVisible(true), delay * 1000); obs.unobserve(el); } },
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setTimeout(() => setVisible(true), delay * 1000);
+          obs.unobserve(el);
+        }
+      },
       { threshold: 0.08, rootMargin: "-40px" }
     );
     obs.observe(el);
@@ -25,137 +25,77 @@ function useFadeUp(delay = 0) {
   return { ref, visible };
 }
 
-function FadeUp({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) {
+function FadeUp({
+  children,
+  delay = 0,
+  className = "",
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  className?: string;
+}) {
   const { ref, visible } = useFadeUp(delay);
   return (
-    <div ref={ref} className={className}
-      style={{ transition: `opacity 0.65s ease, transform 0.65s ease`, transitionDelay: `${delay}s`,
-        opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(28px)" }}>
+    <div
+      ref={ref}
+      className={className}
+      style={{
+        transition: "opacity 0.65s ease, transform 0.65s ease",
+        transitionDelay: `${delay}s`,
+        opacity: visible ? 1 : 0,
+        transform: visible ? "translateY(0)" : "translateY(28px)",
+      }}
+    >
       {children}
     </div>
   );
 }
 
-/* ─── Shared QR pattern + generic grid renderer ───────────────── */
-// Module-level constant reused by QRMockup (hero) and QrShowcase
-const QR_PATTERN = [
-  [1,1,1,0,1,1,1],
-  [1,0,1,0,1,0,1],
-  [1,1,1,1,1,1,1],
-  [0,1,0,0,0,1,0],
-  [1,1,1,1,1,1,1],
-  [1,0,1,0,1,0,1],
-  [1,1,1,0,1,1,1],
+/* ─── Shared 4×4 QR pattern ───────────────────────────────── */
+const QR4_PATTERN = [
+  [1, 0, 1, 1],
+  [0, 1, 0, 1],
+  [1, 1, 1, 0],
+  [1, 0, 1, 1],
 ] as const;
 
-function QrGrid({
-  cellColor = "#FFB800",
+/* ─── 7×7 QR pattern for showcase cards ──────────────────── */
+const QR7_PATTERN = [
+  [1, 1, 1, 0, 1, 1, 1],
+  [1, 0, 1, 0, 1, 0, 1],
+  [1, 1, 1, 1, 1, 1, 1],
+  [0, 1, 0, 0, 0, 1, 0],
+  [1, 1, 1, 1, 1, 1, 1],
+  [1, 0, 1, 0, 1, 0, 1],
+  [1, 1, 1, 0, 1, 1, 1],
+] as const;
+
+function QR7Grid({
+  cellColor,
   glowColor,
-  bg = "white",
-  cellSize = "w-3 h-3",
-  className = "",
+  cellSize = 10,
 }: {
-  cellColor?: string;
+  cellColor: string;
   glowColor?: string;
-  bg?: string;
-  cellSize?: string;
-  className?: string;
+  cellSize?: number;
 }) {
   return (
-    <div className={`p-2 rounded-lg inline-block ${className}`} style={{ background: bg }}>
-      <div className="grid gap-[2px]" style={{ gridTemplateColumns: "repeat(7,1fr)" }}>
-        {QR_PATTERN.flat().map((cell, i) => (
-          <div key={i} className={`${cellSize} rounded-[1px]`}
-            style={{
-              background: cell ? cellColor : "transparent",
-              ...(cell && glowColor ? { boxShadow: `0 0 4px ${glowColor}` } : {}),
-            }} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// Wrapper used by HeroVisual — keeps existing call-sites unchanged
-function QRMockup() {
-  return <QrGrid bg="white" cellColor="#FFB800" cellSize="w-3 h-3" className="shadow-lg" />;
-}
-
-/* ─── Hero visual ───────────────────────────────────────────── */
-function HeroVisual() {
-  const [barWidth, setBarWidth] = useState(0);
-  useEffect(() => {
-    const t = setTimeout(() => setBarWidth(42), 1800);
-    return () => clearTimeout(t);
-  }, []);
-
-  return (
-    <div className="relative w-full flex items-center justify-center" style={{ minHeight: 420 }}>
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse 70% 60% at 55% 50%, rgba(255,184,0,0.12) 0%, transparent 70%)" }} />
-
-      {/* Product card */}
-      <div className="animate-float relative z-10 rounded-3xl p-6 flex flex-col items-center gap-4 glow-gold"
-        style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.3)",
-          width: 220, animation: "float 4s ease-in-out infinite" }}>
-        <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-widest" style={{ color: "#FFB800" }}>
-          <Sparkles size={11} /> Premium T-Shirt
-        </div>
-        <div className="relative w-32 h-28 flex items-center justify-center">
-          <svg viewBox="0 0 100 88" className="w-full h-full" fill="none">
-            <path d="M30 12 L10 28 L22 35 L22 80 L78 80 L78 35 L90 28 L70 12 L62 20 C60 25 55 28 50 28 C45 28 40 25 38 20 Z"
-              fill="#1e1e2e" stroke="rgba(255,184,0,0.35)" strokeWidth="1.5" />
-          </svg>
-          <div className="absolute bottom-3"><QRMockup /></div>
-        </div>
-        <div className="flex items-center gap-1 text-xs" style={{ color: "#4A4A58" }}>
-          <ScanLine size={11} style={{ color: "#FFB800" }} /> Scan to unlock memory
-        </div>
-      </div>
-
-      {/* Connector */}
-      <div className="relative z-10 flex flex-col items-center gap-1 mx-3">
-        <div className="w-px h-8" style={{ background: "linear-gradient(to bottom, transparent, #FFB800)" }} />
-        <div className="rounded-full p-1" style={{ color: "#FFB800", animation: "pulse-ring 2s ease-in-out infinite" }}>
-          <Smartphone size={18} />
-        </div>
-        <div className="w-px h-8" style={{ background: "linear-gradient(to bottom, #FFB800, transparent)" }} />
-      </div>
-
-      {/* Phone mockup */}
-      <div className="relative z-10">
-        <div className="relative overflow-hidden"
-          style={{ width: 105, height: 195, borderRadius: 26, background: "#0d0d14",
-            border: "2px solid rgba(255,184,0,0.3)",
-            boxShadow: "0 0 30px rgba(255,184,0,0.15), inset 0 0 20px rgba(0,0,0,0.4)" }}>
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 rounded-full"
-            style={{ width: 28, height: 6, background: "#252530" }} />
-          <div className="absolute inset-0 flex items-center justify-center"
-            style={{ background: "linear-gradient(160deg, #1a0533 0%, #0d0d14 55%, #0a1a0d 100%)" }}>
-            <div className="absolute top-8 left-2 right-2 space-y-1.5 opacity-25">
-              {[90,55,75,45].map((w, i) => (
-                <div key={i} className="h-1 rounded" style={{ width: `${w}%`, background: "rgba(255,255,255,0.4)" }} />
-              ))}
-            </div>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center shadow-lg"
-              style={{ background: "#FFB800", animation: "pulse-ring 2s ease-in-out infinite" }}>
-              <Play size={13} style={{ color: "#0A0A0B", fill: "#0A0A0B" }} className="ml-0.5" />
-            </div>
-            <div className="absolute bottom-6 left-3 right-3">
-              <div className="h-0.5 rounded" style={{ background: "#252530" }}>
-                <div className="h-full rounded" style={{ background: "#FFB800", width: `${barWidth}%`, transition: "width 2s ease-out" }} />
-              </div>
-            </div>
-          </div>
-          <div className="scan-line absolute left-0 right-0 h-0.5 pointer-events-none"
-            style={{ background: "linear-gradient(90deg, transparent, #FFB800, transparent)", boxShadow: "0 0 8px #FFB800" }} />
-        </div>
-        <div className="absolute -bottom-3 -right-8 flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold"
-          style={{ background: "linear-gradient(90deg, #FFB800, #FF9A3C)", color: "#0A0A0B",
-            animation: "fadeInScale 0.4s ease 1.6s both" }}>
-          <Heart size={8} style={{ fill: "#0A0A0B" }} /> Memory playing!
-        </div>
-      </div>
+    <div
+      className="grid gap-[2px]"
+      style={{ gridTemplateColumns: `repeat(7, ${cellSize}px)` }}
+    >
+      {QR7_PATTERN.flat().map((cell, i) => (
+        <div
+          key={i}
+          style={{
+            width: cellSize,
+            height: cellSize,
+            borderRadius: 2,
+            background: cell ? cellColor : "transparent",
+            ...(cell && glowColor ? { boxShadow: `0 0 4px ${glowColor}` } : {}),
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -164,62 +104,102 @@ function HeroVisual() {
 function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const navLinks = [
+  const navLinks: [string, string][] = [
+    ["Home", "/"],
     ["How It Works", "#how-it-works"],
-    ["Products",     "#products"],
-    ["Pricing",      "#pricing"],
+    ["Products", "#products"],
   ];
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
-      style={{ background: scrolled ? "rgba(10,10,11,0.95)" : "transparent",
+    <nav
+      className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+      style={{
+        background: scrolled ? "rgba(10,10,11,0.95)" : "transparent",
         backdropFilter: scrolled ? "blur(12px)" : "none",
         WebkitBackdropFilter: scrolled ? "blur(12px)" : "none",
-        borderBottom: scrolled ? "1px solid rgba(255,184,0,0.1)" : "none" }}>
+        borderBottom: scrolled ? "1px solid rgba(255,184,0,0.1)" : "none",
+      }}
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center glow-gold group-hover:scale-110 transition-transform"
-            style={{ background: "#FFB800" }}>
-            <Lock size={13} style={{ color: "#0A0A0B" }} />
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2.5 group">
+          <div
+            className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm transition-transform group-hover:scale-110"
+            style={{ background: "#FFB800", color: "#0A0A0B" }}
+          >
+            🔓
           </div>
-          <span className="font-bold text-lg tracking-tight">
-            Gift<span className="text-gold-gradient">Unlock</span>
-            <span style={{ color: "#4A4A58", fontSize: "0.8em", fontWeight: 400 }}>.in</span>
+          <span className="font-black text-lg tracking-tight text-white">
+            Gift<span style={{ color: "#FFB800" }}>Unlock</span>
           </span>
         </Link>
-        <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: "#4A4A58" }}>
+
+        {/* Desktop links */}
+        <div className="hidden md:flex items-center gap-8 text-sm" style={{ color: "#9B9BAA" }}>
           {navLinks.map(([label, href]) => (
-            <a key={label} href={href} className="hover:text-white transition-colors">{label}</a>
+            <a key={label} href={href} className="hover:text-white transition-colors">
+              {label}
+            </a>
           ))}
         </div>
-        <Link href="/order"
-          className="hidden md:flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all hover:scale-105 glow-gold"
-          style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)", color: "#0A0A0B" }}>
-          Order Now <ArrowRight size={13} />
+
+        {/* CTA */}
+        <Link
+          href="/order"
+          className="hidden md:flex items-center gap-1.5 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
+          style={{
+            background: "#FFB800",
+            color: "#0A0A0B",
+            boxShadow: "0 0 20px rgba(255,184,0,0.25)",
+          }}
+        >
+          Order Now →
         </Link>
-        <button className="md:hidden text-white" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle menu">
-          {menuOpen ? <X size={22} /> : <Menu size={22} />}
+
+        {/* Mobile toggle */}
+        <button
+          className="md:hidden text-white text-xl p-1"
+          onClick={() => setMenuOpen(!menuOpen)}
+          aria-label="Toggle menu"
+        >
+          {menuOpen ? "✕" : "☰"}
         </button>
       </div>
+
+      {/* Mobile drawer */}
       {menuOpen && (
-        <div className="md:hidden px-4 pb-4 pt-2 flex flex-col gap-2"
-          style={{ background: "rgba(10,10,11,0.98)", borderBottom: "1px solid rgba(255,184,0,0.1)" }}>
+        <div
+          className="md:hidden px-4 pb-5 pt-2 flex flex-col gap-2"
+          style={{
+            background: "rgba(10,10,11,0.98)",
+            borderBottom: "1px solid rgba(255,184,0,0.1)",
+          }}
+        >
           {navLinks.map(([label, href]) => (
-            <a key={label} href={href} className="py-2.5 text-sm border-b"
-              style={{ color: "#4A4A58", borderColor: "rgba(255,184,0,0.06)" }}
-              onClick={() => setMenuOpen(false)}>{label}</a>
+            <a
+              key={label}
+              href={href}
+              className="py-2.5 text-sm border-b"
+              style={{ color: "#9B9BAA", borderColor: "rgba(255,184,0,0.06)" }}
+              onClick={() => setMenuOpen(false)}
+            >
+              {label}
+            </a>
           ))}
-          <Link href="/order"
+          <Link
+            href="/order"
             className="mt-2 flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm"
-            style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)", color: "#0A0A0B" }}
-            onClick={() => setMenuOpen(false)}>
-            Order Now <ArrowRight size={14} />
+            style={{ background: "#FFB800", color: "#0A0A0B" }}
+            onClick={() => setMenuOpen(false)}
+          >
+            Order Now →
           </Link>
         </div>
       )}
@@ -229,100 +209,167 @@ function Navbar() {
 
 /* ─── HERO ────────────────────────────────────────────────── */
 function Hero() {
-  const entry = (delay: number): CSSProperties => ({ animation: `fadeInUp 0.7s ease ${delay}s both` });
-
   return (
-    <section id="hero" className="relative min-h-screen flex items-center overflow-hidden pt-16">
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: "radial-gradient(circle, #FFB800, transparent)" }} />
-        <div className="absolute top-1/2 -right-40 w-80 h-80 rounded-full opacity-10 blur-3xl"
-          style={{ background: "radial-gradient(circle, #FF6B35, transparent)" }} />
-        <svg className="absolute inset-0 w-full h-full opacity-[0.04]" xmlns="http://www.w3.org/2000/svg">
-          <defs><pattern id="dots" x="0" y="0" width="32" height="32" patternUnits="userSpaceOnUse">
-            <circle cx="2" cy="2" r="1" fill="#FFB800" />
-          </pattern></defs>
-          <rect width="100%" height="100%" fill="url(#dots)" />
-        </svg>
-      </div>
+    <section
+      id="hero"
+      className="relative min-h-screen flex items-center overflow-hidden pt-16"
+      style={{ background: "#0A0A0B" }}
+    >
+      {/* Ambient glow */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "radial-gradient(ellipse 80% 50% at 50% 30%, rgba(255,184,0,0.07) 0%, transparent 70%)",
+        }}
+      />
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 grid lg:grid-cols-2 gap-12 items-center py-20">
-        <div className="space-y-7">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
-            style={{ background: "rgba(255,184,0,0.08)", border: "1px solid rgba(255,184,0,0.25)", color: "#FFB800", ...entry(0) }}>
-            <Sparkles size={11} />
-            🌸 Holi Special | 48hr Production | Ships Across India
-          </div>
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight" style={entry(0.1)}>
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-24 w-full">
+        {/* Badge */}
+        <div className="flex justify-center mb-8">
+          <span
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
+            style={{
+              background: "rgba(255,184,0,0.08)",
+              border: "1px solid rgba(255,184,0,0.25)",
+              color: "#FFB800",
+            }}
+          >
+            ✨ Artistic QR · 48hr Production · Ships Across India
+          </span>
+        </div>
+
+        {/* Headline */}
+        <div className="text-center space-y-5 mb-14">
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-white">
             Unlock the Memory{" "}
-            <span className="text-gold-gradient">They Will Never</span> Forget
+            <span style={{ color: "#FFB800" }}>They Will Never Forget</span>
           </h1>
-          <p className="text-lg leading-relaxed max-w-lg" style={{ color: "#4A4A58", ...entry(0.2) }}>
-            Upload a selfie &amp; video clips. We craft a{" "}
-            <span className="text-white font-medium">cinematic 15–30 sec memory</span>, print a{" "}
-            <span style={{ color: "#FFB800" }} className="font-medium">festive artistic QR code</span>{" "}
-            on a premium gift. One scan →{" "}
-            <span className="text-white font-medium">pure emotion.</span>
+          <p className="text-lg leading-relaxed max-w-2xl mx-auto" style={{ color: "#9B9BAA" }}>
+            Turn your photos &amp; videos into a premium gift with a stunning artistic QR
           </p>
-          <div className="flex flex-col sm:flex-row gap-3" style={entry(0.3)}>
-            <Link href="/order"
-              className="group flex items-center justify-center gap-2 px-7 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105 glow-gold-strong"
-              style={{ background: "linear-gradient(135deg, #FFD700 0%, #FFB800 50%, #FF9A3C 100%)", color: "#0A0A0B" }}>
-              <Gift size={18} /> Create Your Emotional Gift
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <a href="#how-it-works"
-              className="flex items-center justify-center gap-2 px-6 py-4 rounded-2xl font-semibold text-sm transition-all"
-              style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}
-              onMouseEnter={(e) => { e.currentTarget.style.color = "#fff"; e.currentTarget.style.borderColor = "rgba(255,184,0,0.4)"; }}
-              onMouseLeave={(e) => { e.currentTarget.style.color = "#4A4A58"; e.currentTarget.style.borderColor = "rgba(255,184,0,0.15)"; }}>
-              <Play size={13} /> See How It Works
-            </a>
-          </div>
-          <div className="flex flex-wrap gap-5 pt-1" style={entry(0.5)}>
-            {[
-              { Icon: Heart, label: "500+ Memories Created" },
-              { Icon: Star,  label: "4.9★ Rating" },
-              { Icon: Clock, label: "48hr Production" },
-              { Icon: Truck, label: "Ships Across India" },
-            ].map(({ Icon, label }) => (
-              <div key={label} className="flex items-center gap-1.5 text-xs" style={{ color: "#4A4A58" }}>
-                <Icon size={11} style={{ color: "#FFB800" }} /> {label}
+        </div>
+
+        {/* QR comparison — 4×4 CSS grid side by side */}
+        <div className="flex items-center justify-center gap-8 sm:gap-16 mb-14">
+          {/* Boring QR */}
+          <div className="flex flex-col items-center gap-3">
+            <span
+              className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+              style={{
+                background: "rgba(255,255,255,0.05)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                color: "#9B9BAA",
+              }}
+            >
+              Boring QR
+            </span>
+            <div
+              className="p-3 rounded-xl"
+              style={{ background: "#E5E5E5" }}
+            >
+              <div
+                className="grid gap-[3px]"
+                style={{ gridTemplateColumns: "repeat(4, 14px)" }}
+              >
+                {QR4_PATTERN.flat().map((cell, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 3,
+                      background: cell ? "#2A2A2A" : "transparent",
+                    }}
+                  />
+                ))}
               </div>
-            ))}
+            </div>
+            <p className="text-xs" style={{ color: "#555566" }}>Generic. Forgettable.</p>
+          </div>
+
+          {/* VS badge */}
+          <div
+            className="w-10 h-10 rounded-full flex items-center justify-center font-black text-sm flex-shrink-0"
+            style={{
+              background: "rgba(255,184,0,0.12)",
+              border: "2px solid rgba(255,184,0,0.35)",
+              color: "#FFB800",
+            }}
+          >
+            VS
+          </div>
+
+          {/* GiftUnlock QR — golden glowing dots */}
+          <div className="flex flex-col items-center gap-3">
+            <span
+              className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
+              style={{
+                background: "rgba(255,184,0,0.1)",
+                border: "1px solid rgba(255,184,0,0.3)",
+                color: "#FFB800",
+              }}
+            >
+              GiftUnlock QR
+            </span>
+            <div
+              className="p-3 rounded-xl"
+              style={{
+                background: "#111116",
+                border: "2px solid rgba(255,184,0,0.45)",
+                boxShadow: "0 0 30px rgba(255,184,0,0.2)",
+              }}
+            >
+              <div
+                className="grid gap-[3px]"
+                style={{ gridTemplateColumns: "repeat(4, 14px)" }}
+              >
+                {QR4_PATTERN.flat().map((cell, i) => (
+                  <div
+                    key={i}
+                    style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 3,
+                      background: cell ? "#FFB800" : "transparent",
+                      boxShadow: cell
+                        ? "0 0 6px rgba(255,184,0,0.85), 0 0 2px #FFB800"
+                        : "none",
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+            <p className="text-xs font-semibold" style={{ color: "#FFB800" }}>
+              Stunning. Scans perfectly. ✨
+            </p>
           </div>
         </div>
-        <HeroVisual />
-      </div>
 
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-1 text-xs"
-        style={{ color: "#252530", animation: "bounce 2s ease-in-out infinite" }}>
-        <div className="w-px h-6" style={{ background: "linear-gradient(to bottom, transparent, #252530)" }} />
-        scroll
-      </div>
-    </section>
-  );
-}
-
-/* ─── STATS ──────────────────────────────────────────────── */
-function Stats() {
-  const stats = [
-    { value: "500+",     label: "Memories Created", Icon: Film  },
-    { value: "4.9★",     label: "Rating",           Icon: Star  },
-    { value: "48hr",     label: "Production",        Icon: Zap   },
-    { value: "Pan India",label: "Shipping",          Icon: Truck },
-  ];
-  return (
-    <section className="py-14 border-y"
-      style={{ borderColor: "rgba(255,184,0,0.08)", background: "rgba(17,17,22,0.5)" }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
-        {stats.map(({ value, label, Icon }, i) => (
-          <FadeUp key={label} delay={i * 0.1} className="flex flex-col items-center text-center gap-2">
-            <Icon size={20} style={{ color: "#FFB800" }} />
-            <span className="text-3xl font-black text-gold-gradient">{value}</span>
-            <span className="text-xs uppercase tracking-wider" style={{ color: "#4A4A58" }}>{label}</span>
-          </FadeUp>
-        ))}
+        {/* CTA Buttons */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Link
+            href="/order"
+            className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
+            style={{
+              background: "linear-gradient(135deg, #FFD700, #FFB800, #FF9A3C)",
+              color: "#0A0A0B",
+              boxShadow: "0 0 32px rgba(255,184,0,0.3)",
+            }}
+          >
+            🎁 Create Your Gift
+          </Link>
+          <a
+            href="#how-it-works"
+            className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-base transition-all"
+            style={{
+              border: "1px solid rgba(255,184,0,0.2)",
+              color: "#9B9BAA",
+            }}
+          >
+            ▶ How It Works
+          </a>
+        </div>
       </div>
     </section>
   );
@@ -330,66 +377,85 @@ function Stats() {
 
 /* ─── QR SHOWCASE ─────────────────────────────────────────── */
 function QrShowcase() {
-  const occasionBadges = ["Haldi 📛", "Anniversary ❤️", "Birthday 🎂"];
+  const themes = [
+    {
+      label: "Haldi 🌼",
+      bg: "linear-gradient(145deg, #1a1500, #0d0c00)",
+      border: "rgba(255,210,0,0.4)",
+      glow: "rgba(255,210,0,0.15)",
+      cellColor: "#FFD700",
+      glowColor: "rgba(255,215,0,0.75)",
+      tagBg: "rgba(255,210,0,0.1)",
+      tagColor: "#FFD700",
+    },
+    {
+      label: "Anniversary ❤️",
+      bg: "linear-gradient(145deg, #1a0008, #0d000a)",
+      border: "rgba(255,55,75,0.4)",
+      glow: "rgba(255,55,75,0.15)",
+      cellColor: "#FF3355",
+      glowColor: "rgba(255,55,75,0.75)",
+      tagBg: "rgba(255,55,75,0.1)",
+      tagColor: "#FF3355",
+    },
+    {
+      label: "Birthday 🎂",
+      bg: "linear-gradient(145deg, #0e0018, #07000d)",
+      border: "rgba(178,80,255,0.4)",
+      glow: "rgba(178,80,255,0.15)",
+      cellColor: "#B250FF",
+      glowColor: "rgba(178,80,255,0.75)",
+      tagBg: "rgba(178,80,255,0.1)",
+      tagColor: "#B250FF",
+    },
+  ];
+
   return (
-    <section id="qr-showcase" className="py-24 relative overflow-hidden"
-      style={{ background: "rgba(10,10,11,0.9)" }}>
+    <section
+      id="qr-showcase"
+      className="py-24"
+      style={{ background: "rgba(10,10,11,0.98)" }}
+    >
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <FadeUp className="text-center mb-14 space-y-4">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>Artistic QR Technology</p>
+          <p
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: "#FFB800" }}
+          >
+            Artistic QR Technology
+          </p>
           <h2 className="text-4xl font-black text-white">Not a Boring Black Square</h2>
-          <p className="max-w-2xl mx-auto text-base leading-relaxed" style={{ color: "#4A4A58" }}>
-            Every GiftUnlock comes with a hand-crafted artistic QR — marigold patterns, festive florals,
-            powered by Gemini AI. It still scans perfectly.
+          <p className="max-w-xl mx-auto" style={{ color: "#9B9BAA" }}>
+            Every GiftUnlock QR is hand-crafted for your occasion — vivid, themed, and still scans
+            perfectly every time.
           </p>
         </FadeUp>
 
-        {/* Side-by-side comparison */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 sm:gap-14">
-          {/* Boring QR */}
-          <FadeUp delay={0.1} className="flex flex-col items-center gap-4">
-            <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
-              style={{ background: "rgba(255,255,255,0.05)", color: "#4A4A58", border: "1px solid rgba(255,255,255,0.08)" }}>
-              Boring QR
-            </span>
-            <div style={{ filter: "grayscale(1)" }}>
-              <QrGrid cellColor="#1a1a1a" bg="white" cellSize="w-4 h-4" className="shadow-md" />
-            </div>
-            <p className="text-sm" style={{ color: "#4A4A58" }}>Generic. Forgettable.</p>
-          </FadeUp>
-
-          {/* VS */}
-          <FadeUp delay={0.15}>
-            <div className="text-2xl font-black" style={{ color: "#FFB800" }}>VS</div>
-          </FadeUp>
-
-          {/* Artistic QR */}
-          <FadeUp delay={0.2} className="flex flex-col items-center gap-4">
-            <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
-              style={{ background: "rgba(255,184,0,0.1)", color: "#FFB800", border: "1px solid rgba(255,184,0,0.3)" }}>
-              GiftUnlock Artistic QR
-            </span>
-            <div className="rounded-2xl p-3 inline-block"
-              style={{ background: "linear-gradient(135deg, #1e1a0a, #0d0d14)",
-                border: "2px solid rgba(255,184,0,0.45)",
-                boxShadow: "0 0 40px rgba(255,184,0,0.2), 0 0 80px rgba(255,140,0,0.08)" }}>
-              <QrGrid cellColor="#FFB800" glowColor="rgba(255,184,0,0.7)" bg="transparent" cellSize="w-4 h-4" />
-            </div>
-            <p className="text-sm font-semibold" style={{ color: "#FFB800" }}>Stunning. Still scans perfectly. ✨</p>
-          </FadeUp>
+        <div className="grid sm:grid-cols-3 gap-6">
+          {themes.map(({ label, bg, border, glow, cellColor, glowColor, tagBg, tagColor }, i) => (
+            <FadeUp key={label} delay={i * 0.12}>
+              <div
+                className="flex flex-col items-center gap-5 p-8 rounded-2xl"
+                style={{
+                  background: bg,
+                  border: `1px solid ${border}`,
+                  boxShadow: `0 0 48px ${glow}`,
+                }}
+              >
+                <span
+                  className="text-xs font-bold px-3 py-1 rounded-full"
+                  style={{ background: tagBg, color: tagColor, border: `1px solid ${border}` }}
+                >
+                  {label}
+                </span>
+                <QR7Grid cellColor={cellColor} glowColor={glowColor} cellSize={11} />
+                <p className="text-xs text-center" style={{ color: "#9B9BAA" }}>
+                  Artistic QR by Gemini AI ✨
+                </p>
+              </div>
+            </FadeUp>
+          ))}
         </div>
-
-        <FadeUp delay={0.3} className="text-center mt-14 space-y-5">
-          <p className="text-sm" style={{ color: "#4A4A58" }}>✨ Artistic QR by Gemini AI · Designed for your occasion</p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {occasionBadges.map((label) => (
-              <span key={label} className="px-4 py-1.5 rounded-full text-sm font-semibold"
-                style={{ background: "rgba(255,184,0,0.08)", border: "1px solid rgba(255,184,0,0.2)", color: "#FFB800" }}>
-                {label}
-              </span>
-            ))}
-          </div>
-        </FadeUp>
       </div>
     </section>
   );
@@ -398,43 +464,85 @@ function QrShowcase() {
 /* ─── HOW IT WORKS ────────────────────────────────────────── */
 function HowItWorks() {
   const steps = [
-    { num: "01", Icon: Upload,     color: "#FFB800", title: "Upload Your Moments",
-      desc: "Share a selfie and your best video clips — birthdays, weddings, Holi dhamaka, proposals." },
-    { num: "02", Icon: Film,       color: "#FF9A3C", title: "We Craft Your Video",
-      desc: "Our team weaves a cinematic 15–30 sec memory video. Professional editing, zero effort from you." },
-    { num: "03", Icon: QrCode,     color: "#FF6B35", title: "Festive QR Printed",
-      desc: "A Gemini AI–style artistic QR — marigold, Haldi vibes — printed on your premium gift." },
-    { num: "04", Icon: Smartphone, color: "#FFD700", title: "Scan → Emotion Unlocked",
-      desc: "Gift it. They scan. Their memory plays instantly. Tears guaranteed — the happy kind." },
+    {
+      num: "01",
+      emoji: "📸",
+      title: "Upload Memories",
+      desc: "Share your photos and video clips — birthdays, weddings, trips, anything that matters.",
+      color: "#FFB800",
+    },
+    {
+      num: "02",
+      emoji: "🎨",
+      title: "We Craft Your QR",
+      desc: "Our team creates a cinematic memory video and generates your stunning artistic QR code.",
+      color: "#FF9A3C",
+    },
+    {
+      num: "03",
+      emoji: "📦",
+      title: "Print & Ship in 48hr",
+      desc: "Your QR is printed on your chosen premium gift and shipped across India within 48 hours.",
+      color: "#FF6B35",
+    },
+    {
+      num: "04",
+      emoji: "📱",
+      title: "Scan & Unlock",
+      desc: "One scan. The memory plays instantly. Tears guaranteed — the happy kind. ❤️",
+      color: "#FFD700",
+    },
   ];
 
   return (
-    <section id="how-it-works" className="py-24">
+    <section id="how-it-works" className="py-24" style={{ background: "#0A0A0B" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <FadeUp className="text-center mb-16 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>Simple. Magical. Unforgettable.</p>
-          <h2 className="text-4xl font-black">How <span className="text-gold-gradient">GiftUnlock</span> Works</h2>
-          <p className="max-w-xl mx-auto" style={{ color: "#4A4A58" }}>Four steps. One scan. A memory that lasts forever.</p>
+          <p
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: "#FFB800" }}
+          >
+            Simple. Magical. 4 Steps.
+          </p>
+          <h2 className="text-4xl font-black text-white">
+            How <span style={{ color: "#FFB800" }}>GiftUnlock</span> Works
+          </h2>
+          <p className="max-w-xl mx-auto" style={{ color: "#9B9BAA" }}>
+            Four steps. One scan. A memory that lasts forever.
+          </p>
         </FadeUp>
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {steps.map(({ num, Icon, title, desc, color }, i) => (
+          {steps.map(({ num, emoji, title, desc, color }, i) => (
             <FadeUp key={num} delay={i * 0.12}>
-              <div className="relative p-6 rounded-2xl h-full flex flex-col gap-4 group hover:scale-[1.02] transition-transform"
-                style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.1)" }}>
-                <span className="absolute top-4 right-5 text-5xl font-black opacity-10 select-none" style={{ color }}>{num}</span>
-                <div className="w-11 h-11 rounded-xl flex items-center justify-center"
-                  style={{ background: `${color}18`, border: `1px solid ${color}30` }}>
-                  <Icon size={20} style={{ color }} />
+              <div
+                className="relative p-6 rounded-2xl h-full flex flex-col gap-4 transition-transform hover:scale-[1.02]"
+                style={{
+                  background: "linear-gradient(145deg, #1A1A24, #111116)",
+                  border: "1px solid rgba(255,184,0,0.1)",
+                }}
+              >
+                <span
+                  className="absolute top-4 right-5 text-5xl font-black select-none"
+                  style={{ color, opacity: 0.08 }}
+                >
+                  {num}
+                </span>
+                <div
+                  className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
+                  style={{
+                    background: `${color}18`,
+                    border: `1px solid ${color}30`,
+                  }}
+                >
+                  {emoji}
                 </div>
                 <div className="space-y-2">
                   <h3 className="font-bold text-white text-base">{title}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: "#4A4A58" }}>{desc}</p>
+                  <p className="text-sm leading-relaxed" style={{ color: "#9B9BAA" }}>
+                    {desc}
+                  </p>
                 </div>
-                {i < 3 && (
-                  <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 z-10">
-                    <ChevronRight size={16} style={{ color: "#B37D00" }} />
-                  </div>
-                )}
               </div>
             </FadeUp>
           ))}
@@ -446,39 +554,90 @@ function HowItWorks() {
 
 /* ─── GROUP MEMORY ───────────────────────────────────────── */
 function GroupMemory() {
-  const steps = [
-    { icon: "📱", text: "Share a link with your squad" },
-    { icon: "🎬", text: "Everyone uploads their clip" },
-    { icon: "🎁", text: "One gift, a hundred hearts" },
+  const features = [
+    {
+      icon: "🔗",
+      title: "Share a Link",
+      desc: "Send one simple link to your entire squad — no app needed.",
+    },
+    {
+      icon: "🎬",
+      title: "Everyone Uploads",
+      desc: "Friends and family add their best clips and photos from their phones.",
+    },
+    {
+      icon: "🎁",
+      title: "One Gift, Many Hearts",
+      desc: "All memories combined into a single unforgettable QR gift.",
+    },
   ];
+
   return (
-    <section id="group-memory" className="py-24" style={{ background: "rgba(17,17,22,0.4)" }}>
+    <section
+      id="group-memory"
+      className="py-24"
+      style={{ background: "rgba(17,17,22,0.6)" }}
+    >
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
         <FadeUp>
-          <div className="relative p-8 sm:p-12 rounded-3xl text-center space-y-8"
-            style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.15)" }}>
-            <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-4 py-1 rounded-full"
-              style={{ background: "linear-gradient(90deg, #FFD700, #FF9A3C)", color: "#0A0A0B" }}>
+          <div
+            className="relative p-8 sm:p-12 rounded-3xl text-center space-y-8"
+            style={{
+              background: "linear-gradient(145deg, #1A1A24, #111116)",
+              border: "1px solid rgba(255,184,0,0.2)",
+              boxShadow: "0 0 60px rgba(255,184,0,0.04)",
+            }}
+          >
+            {/* NEW badge */}
+            <span
+              className="absolute -top-4 left-1/2 -translate-x-1/2 text-xs font-black px-5 py-1.5 rounded-full uppercase tracking-wide"
+              style={{
+                background: "linear-gradient(90deg, #FFD700, #FF9A3C)",
+                color: "#0A0A0B",
+              }}
+            >
               NEW ✨
             </span>
+
             <div className="space-y-3">
-              <h2 className="text-3xl sm:text-4xl font-black text-white">Let Your Squad Record the Memory</h2>
-              <p className="max-w-xl mx-auto" style={{ color: "#4A4A58" }}>
+              <h2 className="text-3xl sm:text-4xl font-black text-white">
+                Let Your Squad Record the Memory
+              </h2>
+              <p className="max-w-xl mx-auto" style={{ color: "#9B9BAA" }}>
                 Friends, family, colleagues — everyone adds a clip. One QR gift holds them all.
               </p>
             </div>
-            <div className="grid sm:grid-cols-3 gap-6 sm:gap-8">
-              {steps.map(({ icon, text }) => (
-                <div key={text} className="flex flex-col items-center gap-3">
-                  <div className="text-4xl">{icon}</div>
-                  <p className="text-sm font-semibold text-white">{text}</p>
+
+            <div className="grid sm:grid-cols-3 gap-6">
+              {features.map(({ icon, title, desc }) => (
+                <div key={title} className="flex flex-col items-center gap-3">
+                  <div
+                    className="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl"
+                    style={{
+                      background: "rgba(255,184,0,0.08)",
+                      border: "1px solid rgba(255,184,0,0.15)",
+                    }}
+                  >
+                    {icon}
+                  </div>
+                  <h3 className="font-bold text-white text-sm">{title}</h3>
+                  <p className="text-xs leading-relaxed" style={{ color: "#9B9BAA" }}>
+                    {desc}
+                  </p>
                 </div>
               ))}
             </div>
-            <Link href="/order"
+
+            <Link
+              href="/order"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
-              style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)", color: "#0A0A0B" }}>
-              Create Group Gift →
+              style={{
+                background: "#FFB800",
+                color: "#0A0A0B",
+                boxShadow: "0 0 24px rgba(255,184,0,0.25)",
+              }}
+            >
+              🎁 Create Group Gift →
             </Link>
           </div>
         </FadeUp>
@@ -490,119 +649,64 @@ function GroupMemory() {
 /* ─── PRODUCTS ─────────────────────────────────────────────── */
 function Products() {
   const products = [
-    { emoji: "👕", name: "T-Shirt",       price: "from ₹899",   badge: "Most Popular", badgeColor: "#FFB800",
-      desc: "Unisex round-neck, 180 GSM cotton. Your memory printed forever." },
-    { emoji: "🍺", name: "Beer Mug",     price: "from ₹799",   badge: null, badgeColor: null,
-      desc: "11oz ceramic mug. Perfect for dad's birthday or the squad." },
-    { emoji: "🧥", name: "Hoodie",        price: "from ₹1,299", badge: "Premium", badgeColor: "#FF6B35",
-      desc: "350 GSM unisex fleece. A cozy memory they will wear every winter." },
-    { emoji: "🛋️", name: "Cushion",       price: "from ₹699",   badge: null, badgeColor: null,
-      desc: "30×30 cm throw cushion with insert. Scan the QR from the sofa." },
-    { emoji: "☕", name: "Coffee Mug",   price: "from ₹699",   badge: null, badgeColor: null,
-      desc: "11oz ceramic mug. Morning memories, sip by sip." },
-    { emoji: "💧", name: "Water Bottle", price: "from ₹899",   badge: null, badgeColor: null,
-      desc: "750ml stainless steel. Take your memory everywhere." },
+    { emoji: "👕", name: "T-Shirt",       price: "₹899",   tag: "Best Seller" },
+    { emoji: "🍺", name: "Beer Mug",      price: "₹799",   tag: null },
+    { emoji: "🧥", name: "Hoodie",        price: "₹1,299", tag: "Premium" },
+    { emoji: "🛋️", name: "Cushion",       price: "₹699",   tag: null },
+    { emoji: "☕", name: "Coffee Mug",    price: "₹699",   tag: null },
+    { emoji: "💧", name: "Water Bottle",  price: "₹899",   tag: null },
   ];
 
   return (
     <section id="products" className="py-24" style={{ background: "rgba(17,17,22,0.4)" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <FadeUp className="text-center mb-16 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>Choose Your Canvas</p>
-          <h2 className="text-4xl font-black">Premium Gifts, <span className="text-gold-gradient">Emotional Stories</span></h2>
-          <p className="max-w-xl mx-auto" style={{ color: "#4A4A58" }}>Every product is a canvas for a cinematic memory.</p>
+          <p
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: "#FFB800" }}
+          >
+            Choose Your Canvas
+          </p>
+          <h2 className="text-4xl font-black text-white">
+            Premium Gifts,{" "}
+            <span style={{ color: "#FFB800" }}>Emotional Stories</span>
+          </h2>
+          <p className="max-w-xl mx-auto" style={{ color: "#9B9BAA" }}>
+            Every product is a canvas for a memory that plays with one scan.
+          </p>
         </FadeUp>
+
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {products.map(({ emoji, name, desc, badge, badgeColor, price }, i) => (
+          {products.map(({ emoji, name, price, tag }, i) => (
             <FadeUp key={name} delay={i * 0.08}>
-              <div className="relative p-6 rounded-2xl flex flex-col gap-4 h-full group hover:scale-[1.03] transition-transform"
-                style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.1)" }}>
-                {badge && badgeColor && (
-                  <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: badgeColor, color: "#0A0A0B" }}>{badge}</span>
+              <div
+                className="relative p-6 rounded-2xl flex flex-col gap-4 h-full transition-transform hover:scale-[1.02]"
+                style={{
+                  background: "linear-gradient(145deg, #1A1A24, #111116)",
+                  border: "1px solid rgba(255,184,0,0.1)",
+                }}
+              >
+                {tag && (
+                  <span
+                    className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ background: "#FFB800", color: "#0A0A0B" }}
+                  >
+                    {tag}
+                  </span>
                 )}
                 <div className="text-4xl">{emoji}</div>
-                <div className="space-y-1.5 flex-1">
-                  <h3 className="font-bold text-white">{name}</h3>
-                  <p className="text-sm leading-relaxed" style={{ color: "#4A4A58" }}>{desc}</p>
+                <div className="flex-1 space-y-1">
+                  <h3 className="font-bold text-white text-base">{name}</h3>
+                  <p className="text-xl font-black" style={{ color: "#FFB800" }}>
+                    {price}
+                  </p>
                 </div>
-                <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: "rgba(255,184,0,0.08)" }}>
-                  <span className="font-bold text-sm" style={{ color: "#FFB800" }}>{price}</span>
-                  <Link href="/order" className="flex items-center gap-1 text-xs transition-colors" style={{ color: "#4A4A58" }}>
-                    Order <ArrowRight size={11} />
-                  </Link>
-                </div>
-              </div>
-            </FadeUp>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ─── PRICING ─────────────────────────────────────────────── */
-function Pricing() {
-  const tiers = [
-    {
-      name: "QR Classic", price: "₹899", highlight: false, badge: null,
-      tagline: "The perfect first gift",
-      features: ["Artistic festive QR code (PNG)", "Cinematic 15–30 sec memory video",
-        "YouTube Unlisted — scan to play", "1 product of your choice",
-        "Standard shipping across India", "Digital QR design file included"],
-    },
-    {
-      name: "NFC VIP", price: "₹1,699", highlight: true, badge: "Most Premium",
-      tagline: "No scan needed — just tap",
-      features: ["Everything in QR Classic", "Embedded NFC chip (tap to unlock)",
-        "Premium festive gift box", "Priority 24hr production",
-        "Express shipping", "Lifetime YouTube video link"],
-    },
-  ];
-
-  return (
-    <section id="pricing" className="py-24">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6">
-        <FadeUp className="text-center mb-16 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>Simple Pricing</p>
-          <h2 className="text-4xl font-black">One Gift, <span className="text-gold-gradient">Endless Replays</span></h2>
-          <p className="max-w-lg mx-auto" style={{ color: "#4A4A58" }}>No subscriptions. No hidden fees. Your memory lives on YouTube — forever free.</p>
-        </FadeUp>
-        <div className="grid md:grid-cols-2 gap-6">
-          {tiers.map(({ name, price, highlight, tagline, badge, features }, i) => (
-            <FadeUp key={name} delay={i * 0.15}>
-              <div className="relative p-8 rounded-3xl flex flex-col gap-6 h-full"
-                style={{
-                  background: highlight ? "linear-gradient(145deg, #1e1a0a, #1A1A24)" : "linear-gradient(145deg, #1A1A24, #111116)",
-                  border: highlight ? "1px solid rgba(255,184,0,0.4)" : "1px solid rgba(255,184,0,0.1)",
-                  boxShadow: highlight ? "0 0 40px rgba(255,184,0,0.08)" : "none",
-                }}>
-                {badge && (
-                  <span className="absolute -top-3.5 left-1/2 -translate-x-1/2 text-xs font-bold px-4 py-1 rounded-full"
-                    style={{ background: "linear-gradient(90deg, #FFD700, #FF9A3C)", color: "#0A0A0B" }}>{badge}</span>
-                )}
-                <div>
-                  <h3 className="font-black text-xl text-white">{name}</h3>
-                  <p className="text-sm mt-1" style={{ color: "#4A4A58" }}>{tagline}</p>
-                </div>
-                <div className="flex items-end gap-1">
-                  <span className="text-5xl font-black text-gold-gradient">{price}</span>
-                  <span className="pb-1 text-sm" style={{ color: "#4A4A58" }}>/ gift</span>
-                </div>
-                <ul className="space-y-3 flex-1">
-                  {features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-sm">
-                      <CheckCircle2 size={15} className="mt-0.5 shrink-0" style={{ color: highlight ? "#FFB800" : "#333340" }} />
-                      <span style={{ color: highlight ? "#F0F0F5" : "#4A4A58" }}>{f}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link href="/order"
-                  className="flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02]"
-                  style={highlight
-                    ? { background: "linear-gradient(135deg, #FFD700, #FF9A3C)", color: "#0A0A0B" }
-                    : { background: "rgba(255,184,0,0.07)", border: "1px solid rgba(255,184,0,0.2)", color: "#FFB800" }}>
-                  Order {name} <ArrowRight size={14} />
+                <Link
+                  href="/order"
+                  className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02]"
+                  style={{ background: "#FFB800", color: "#0A0A0B" }}
+                >
+                  Order Now →
                 </Link>
               </div>
             </FadeUp>
@@ -613,41 +717,127 @@ function Pricing() {
   );
 }
 
-/* ─── TESTIMONIALS ───────────────────────────────────────── */
-function Testimonials() {
-  const reviews = [
-    { quote: "My dad cried when he scanned the QR. Best birthday gift ever.",
-      name: "Priya S.", location: "Mumbai",    avatar: "P", rating: 5 },
-    { quote: "The artistic QR on the mug was STUNNING. Everyone kept asking where I got it.",
-      name: "Rohan K.", location: "Delhi",     avatar: "R", rating: 5 },
-    { quote: "All 8 of us from college uploaded clips. One QR. We all cried watching it.",
-      name: "Anjali M.", location: "Bangalore", avatar: "A", rating: 5 },
+/* ─── STATS ───────────────────────────────────────────────── */
+function Stats() {
+  const stats = [
+    { value: "500+",      label: "Memories Created", emoji: "🎬" },
+    { value: "4.9 ★",     label: "Average Rating",   emoji: "⭐" },
+    { value: "48hr",      label: "Production Time",  emoji: "⚡" },
+    { value: "Pan India", label: "Shipping",         emoji: "🚚" },
   ];
 
   return (
-    <section className="py-24" style={{ background: "rgba(17,17,22,0.4)" }}>
+    <section
+      className="py-14 border-y"
+      style={{
+        borderColor: "rgba(255,184,0,0.08)",
+        background: "rgba(17,17,22,0.6)",
+      }}
+    >
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
+        {stats.map(({ value, label, emoji }, i) => (
+          <FadeUp
+            key={label}
+            delay={i * 0.1}
+            className="flex flex-col items-center text-center gap-2"
+          >
+            <span className="text-2xl">{emoji}</span>
+            <span className="text-3xl font-black" style={{ color: "#FFB800" }}>
+              {value}
+            </span>
+            <span
+              className="text-xs uppercase tracking-wider"
+              style={{ color: "#9B9BAA" }}
+            >
+              {label}
+            </span>
+          </FadeUp>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─── TESTIMONIALS ───────────────────────────────────────── */
+function Testimonials() {
+  const reviews = [
+    {
+      quote:
+        "My dad cried when he scanned the QR on his mug. Best birthday gift I have ever given.",
+      name: "Priya S.",
+      city: "Mumbai",
+      initial: "P",
+    },
+    {
+      quote:
+        "The artistic QR was stunning. Every guest at the party kept asking where I got it from.",
+      name: "Rohan K.",
+      city: "Delhi",
+      initial: "R",
+    },
+    {
+      quote:
+        "All 8 of us uploaded college memories. One QR, one hoodie, one hundred happy tears. 😭",
+      name: "Anjali M.",
+      city: "Bangalore",
+      initial: "A",
+    },
+  ];
+
+  return (
+    <section className="py-24" style={{ background: "#0A0A0B" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <FadeUp className="text-center mb-16 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>Real Stories</p>
-          <h2 className="text-4xl font-black">Tears of <span className="text-gold-gradient">Pure Joy</span></h2>
+          <p
+            className="text-xs font-semibold uppercase tracking-widest"
+            style={{ color: "#FFB800" }}
+          >
+            Real Stories
+          </p>
+          <h2 className="text-4xl font-black text-white">
+            Tears of <span style={{ color: "#FFB800" }}>Pure Joy</span>
+          </h2>
         </FadeUp>
+
         <div className="grid md:grid-cols-3 gap-5">
-          {reviews.map(({ quote, name, location, avatar, rating }, i) => (
+          {reviews.map(({ quote, name, city, initial }, i) => (
             <FadeUp key={name} delay={i * 0.12}>
-              <div className="p-6 rounded-2xl h-full flex flex-col gap-4"
-                style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.1)" }}>
+              <div
+                className="p-6 rounded-2xl h-full flex flex-col gap-4"
+                style={{
+                  background: "linear-gradient(145deg, #1A1A24, #111116)",
+                  border: "1px solid rgba(255,184,0,0.1)",
+                }}
+              >
+                {/* 5 stars */}
                 <div className="flex gap-0.5">
-                  {Array.from({ length: rating }).map((_, j) => (
-                    <Star key={j} size={13} style={{ color: "#FFB800", fill: "#FFB800" }} />
+                  {Array.from({ length: 5 }).map((_, j) => (
+                    <span key={j} style={{ color: "#FFB800", fontSize: 14 }}>
+                      ★
+                    </span>
                   ))}
                 </div>
-                <p className="text-sm leading-relaxed flex-1 italic" style={{ color: "#4A4A58" }}>&ldquo;{quote}&rdquo;</p>
-                <div className="flex items-center gap-3 pt-3 border-t" style={{ borderColor: "rgba(255,184,0,0.08)" }}>
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold"
-                    style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)", color: "#0A0A0B" }}>{avatar}</div>
+                <p
+                  className="text-sm leading-relaxed flex-1 italic"
+                  style={{ color: "#9B9BAA" }}
+                >
+                  &ldquo;{quote}&rdquo;
+                </p>
+                <div
+                  className="flex items-center gap-3 pt-3 border-t"
+                  style={{ borderColor: "rgba(255,184,0,0.08)" }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
+                    style={{ background: "#FFB800", color: "#0A0A0B" }}
+                  >
+                    {initial}
+                  </div>
                   <div>
                     <p className="font-semibold text-sm text-white">{name}</p>
-                    <p className="text-xs" style={{ color: "#4A4A58" }}>{location}</p>
+                    <p className="text-xs" style={{ color: "#9B9BAA" }}>
+                      {city}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -659,119 +849,115 @@ function Testimonials() {
   );
 }
 
-/* ─── FINAL CTA ───────────────────────────────────────────── */
-function FinalCTA() {
-  const guarantees: { Icon: React.ElementType; label: string }[] = [
-    { Icon: Shield, label: "Secure Razorpay payment" },
-    { Icon: Clock,  label: "48hr production" },
-    { Icon: Truck,  label: "Ships across India" },
-    { Icon: Heart,  label: "100% love guarantee" },
-  ];
-  return (
-    <section className="py-28 relative overflow-hidden">
-      <div className="absolute inset-0 pointer-events-none"
-        style={{ background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(255,184,0,0.06) 0%, transparent 70%)" }} />
-      <div className="relative max-w-3xl mx-auto px-4 sm:px-6 text-center space-y-8">
-        <FadeUp>
-          <div className="space-y-5">
-            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>Start Right Now</p>
-            <h2 className="text-4xl sm:text-5xl font-black leading-tight">
-              Every Memory Fades.<br />
-              <span className="text-gold-gradient">Make Yours Last Forever.</span>
-            </h2>
-            <p className="text-lg leading-relaxed max-w-lg mx-auto" style={{ color: "#4A4A58" }}>
-              Your next birthday, Holi, proposal, or anniversary deserves more than a card.
-              Give them something they will scan again and again — and cry happy tears every time.
-            </p>
-          </div>
-        </FadeUp>
-        <FadeUp delay={0.15}>
-          <Link href="/order"
-            className="group inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105 glow-gold-strong"
-            style={{ background: "linear-gradient(135deg, #FFD700 0%, #FFB800 50%, #FF9A3C 100%)", color: "#0A0A0B" }}>
-            <Gift size={20} /> Create Your Emotional Gift
-            <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-          </Link>
-        </FadeUp>
-        <FadeUp delay={0.25}>
-          <div className="flex flex-wrap justify-center gap-6 text-xs" style={{ color: "#252530" }}>
-            {guarantees.map(({ Icon, label }) => (
-              <div key={label} className="flex items-center gap-1.5">
-                <Icon size={11} style={{ color: "#B37D00" }} /> {label}
-              </div>
-            ))}
-          </div>
-        </FadeUp>
-      </div>
-    </section>
-  );
-}
-
-/* ─── FOOTER ────────────────────────────────────────────────── */
+/* ─── FOOTER ──────────────────────────────────────────────── */
 function Footer() {
+  const navLinks: [string, string][] = [
+    ["Home", "/"],
+    ["How It Works", "#how-it-works"],
+    ["Products", "#products"],
+    ["Group Memory", "#group-memory"],
+    ["Privacy Policy", "/privacy"],
+  ];
+
   return (
-    <footer id="contact" className="py-12 border-t"
-      style={{ borderColor: "rgba(255,184,0,0.12)", background: "rgba(10,10,11,0.95)" }}>
+    <footer
+      className="py-12 border-t"
+      style={{
+        borderColor: "rgba(255,184,0,0.1)",
+        background: "rgba(10,10,11,0.99)",
+      }}
+    >
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="grid md:grid-cols-3 gap-10">
-          {/* Logo + tagline */}
+        <div className="grid md:grid-cols-3 gap-10 mb-10">
+          {/* Brand */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ background: "#FFB800" }}>
-                <Lock size={11} style={{ color: "#0A0A0B" }} />
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
+                style={{ background: "#FFB800", color: "#0A0A0B" }}
+              >
+                🔓
               </div>
-              <span className="font-bold text-base">
-                Gift<span className="text-gold-gradient">Unlock</span>
-                <span style={{ color: "#4A4A58", fontSize: "0.8em", fontWeight: 400 }}>.in</span>
+              <span className="font-black text-lg tracking-tight text-white">
+                Gift<span style={{ color: "#FFB800" }}>Unlock</span>
               </span>
             </div>
-            <p className="text-sm leading-relaxed max-w-xs" style={{ color: "#4A4A58" }}>
+            <p className="text-sm leading-relaxed max-w-xs" style={{ color: "#9B9BAA" }}>
               Unlock the Memory They Will Never Forget
             </p>
           </div>
 
           {/* Links */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold text-white uppercase tracking-wider">Quick Links</p>
+            <p className="text-xs font-semibold text-white uppercase tracking-wider">
+              Quick Links
+            </p>
             <div className="space-y-2">
-              {[
-                ["How It Works",  "#how-it-works"],
-                ["Products",      "#products"],
-                ["Privacy Policy","/privacy"],
-                ["Contact",       "#contact"],
-              ].map(([label, href]) => (
-                <a key={label} href={href}
+              {navLinks.map(([label, href]) => (
+                <a
+                  key={label}
+                  href={href}
                   className="block text-sm hover:text-white transition-colors"
-                  style={{ color: "#4A4A58" }}>{label}</a>
+                  style={{ color: "#9B9BAA" }}
+                >
+                  {label}
+                </a>
               ))}
             </div>
           </div>
 
-          {/* Made in Delhi + AI */}
-          <div className="space-y-4">
-            <p className="text-sm font-semibold text-white">❤️ Made in Delhi</p>
-            <p className="text-sm" style={{ color: "#4A4A58" }}>✨ Artistic QR powered by Gemini AI</p>
-            <div className="flex gap-4">
-              <a href="https://instagram.com/giftunlock" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs hover:text-white transition-colors" style={{ color: "#4A4A58" }}>
-                📸 Instagram
+          {/* Made in Delhi */}
+          <div className="space-y-3">
+            <p className="text-sm font-bold text-white">❤️ Made in Delhi</p>
+            <p className="text-sm" style={{ color: "#9B9BAA" }}>
+              ✨ Artistic QR by Gemini AI
+            </p>
+            <div className="flex gap-4 pt-1">
+              <a
+                href="https://instagram.com/giftunlock"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xl transition-transform hover:scale-110"
+                title="Instagram"
+              >
+                📸
               </a>
-              <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer"
-                className="flex items-center gap-1.5 text-xs hover:text-white transition-colors" style={{ color: "#4A4A58" }}>
-                💬 WhatsApp
+              <a
+                href="https://wa.me/919999999999"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xl transition-transform hover:scale-110"
+                title="WhatsApp"
+              >
+                💬
               </a>
             </div>
           </div>
         </div>
 
-        <div className="mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs border-t"
-          style={{ borderColor: "rgba(255,184,0,0.06)", color: "#252530" }}>
-          <span>© 2026 GiftUnlock.in · All rights reserved</span>
+        {/* Bottom bar */}
+        <div
+          className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs border-t"
+          style={{ borderColor: "rgba(255,184,0,0.06)", color: "#555566" }}
+        >
+          <span>© 2026 GiftUnlock · All rights reserved</span>
           <div className="flex items-center gap-4">
-            <a href="https://instagram.com/giftunlock" target="_blank" rel="noopener noreferrer"
-              className="hover:text-white transition-colors">📸</a>
-            <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer"
-              className="hover:text-white transition-colors">💬</a>
+            <a
+              href="https://instagram.com/giftunlock"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lg hover:text-white transition-colors"
+            >
+              📸
+            </a>
+            <a
+              href="https://wa.me/919999999999"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-lg hover:text-white transition-colors"
+            >
+              💬
+            </a>
           </div>
         </div>
       </div>
@@ -782,18 +968,19 @@ function Footer() {
 /* ─── ROOT PAGE ────────────────────────────────────────────── */
 export default function HomePage() {
   return (
-    <main className="min-h-screen bg-dark-900 text-white overflow-x-hidden">
+    <main
+      className="min-h-screen text-white overflow-x-hidden"
+      style={{ background: "#0A0A0B" }}
+    >
       <Navbar />
-      <Hero />          {/* id="hero" */}
+      <Hero />
+      <QrShowcase />
+      <HowItWorks />
+      <GroupMemory />
+      <Products />
       <Stats />
-      <QrShowcase />    {/* id="qr-showcase" */}
-      <HowItWorks />    {/* id="how-it-works" */}
-      <GroupMemory />   {/* id="group-memory" */}
-      <Products />      {/* id="products" */}
-      <Pricing />       {/* id="pricing" */}
       <Testimonials />
-      <FinalCTA />
-      <Footer />        {/* id="contact" */}
+      <Footer />
     </main>
   );
 }
