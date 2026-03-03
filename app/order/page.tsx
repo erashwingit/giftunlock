@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback, CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, X, Lock,
   Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone,
@@ -67,20 +66,21 @@ function loadRazorpay(): Promise<boolean> {
 
 declare global { interface Window { Razorpay: new (o: object) => { open(): void }; } }
 
-/* ─── Upload files to Supabase Storage ─────────────────── */
+/* ─── Upload files via server-side API ──────────────────── */
+// Sends files as multipart FormData to /api/upload which uses the
+// SERVICE_ROLE key server-side, avoiding RLS/CORS issues entirely.
 async function uploadMedia(files: File[]): Promise<string[]> {
-  const urls: string[] = [];
+  const formData = new FormData();
   for (const file of files) {
-    const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { data, error } = await supabase.storage
-      .from("media")
-      .upload(path, file, { contentType: file.type, upsert: false });
-    if (error) throw new Error(`Upload failed for ${file.name}: ${error.message}`);
-    const { data: { publicUrl } } = supabase.storage.from("media").getPublicUrl(data.path);
-    urls.push(publicUrl);
+    formData.append("files", file);
   }
-  return urls;
+  const res = await fetch("/api/upload", { method: "POST", body: formData });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({ error: "Upload failed" }));
+    throw new Error(err.error ?? "Upload failed");
+  }
+  const { urls } = await res.json();
+  return urls as string[];
 }
 
 /* ─── Shared card style ─────────────────────────────────── */
@@ -382,17 +382,22 @@ function Step4Occasion({ form, set }: { form: FormState; set: (k: keyof FormStat
   );
 }
 
-/* ─── Step 5: Shipping ──────────────────────────────────── */
-function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
-  const Field = ({
-    label, field, placeholder, type = "text", icon: Icon,
-  }: {
-    label: string;
-    field: keyof FormState;
-    placeholder: string;
-    type?: string;
-    icon: React.ElementType;
-  }) => (
+/* ─── Field — module-scope to prevent remount on every render ─
+   BUG FIX: was defined inside Step5Shipping, causing React to
+   treat it as a new component type on each re-render and
+   unmount/remount the <input>, losing focus on every keystroke. */
+function Field({
+  label, field, placeholder, type = "text", icon: Icon, form, set,
+}: {
+  label: string;
+  field: keyof FormState;
+  placeholder: string;
+  type?: string;
+  icon: React.ElementType;
+  form: FormState;
+  set: (k: keyof FormState, v: string) => void;
+}) {
+  return (
     <div>
       <label className="block text-sm font-semibold text-white mb-1.5">{label}</label>
       <div className="relative">
@@ -412,7 +417,10 @@ function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormStat
       </div>
     </div>
   );
+}
 
+/* ─── Step 5: Shipping ──────────────────────────────────── */
+function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
   return (
     <div className="space-y-5">
       <div>
@@ -421,14 +429,14 @@ function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormStat
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Full Name" field="customerName" placeholder="Priya Sharma" icon={User} />
-        <Field label="Mobile Number" field="customerPhone" placeholder="+91 98765 43210" type="tel" icon={Phone} />
+        <Field label="Full Name" field="customerName" placeholder="Priya Sharma" icon={User} form={form} set={set} />
+        <Field label="Mobile Number" field="customerPhone" placeholder="+91 98765 43210" type="tel" icon={Phone} form={form} set={set} />
       </div>
-      <Field label="Address Line 1" field="addressLine1" placeholder="Flat no, Street, Locality" icon={MapPin} />
+      <Field label="Address Line 1" field="addressLine1" placeholder="Flat no, Street, Locality" icon={MapPin} form={form} set={set} />
       <div className="grid grid-cols-3 gap-3">
-        <Field label="City" field="city" placeholder="Mumbai" icon={MapPin} />
-        <Field label="State" field="state" placeholder="Maharashtra" icon={MapPin} />
-        <Field label="Pincode" field="pincode" placeholder="400001" type="number" icon={MapPin} />
+        <Field label="City" field="city" placeholder="Mumbai" icon={MapPin} form={form} set={set} />
+        <Field label="State" field="state" placeholder="Maharashtra" icon={MapPin} form={form} set={set} />
+        <Field label="Pincode" field="pincode" placeholder="400001" type="number" icon={MapPin} form={form} set={set} />
       </div>
     </div>
   );
