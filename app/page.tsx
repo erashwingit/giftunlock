@@ -489,7 +489,7 @@ function Products() {
   const products = [
     { emoji: "👕", name: "T-Shirt",       price: "₹899",   tag: "Best Seller", alt: "GiftUnlock personalized memory T-shirt with Holi artistic QR code" },
     { emoji: "🍺", name: "Beer Mug",      price: "₹799",   tag: null,          alt: "GiftUnlock personalized memory beer mug with Haldi artistic QR code" },
-    { emoji: "🧥", name: "Hoodie",        price: "₹1,299", tag: "Premium",     alt: "GiftUnlock personalized memory hoodie with festive artistic QR code" },
+    { emoji: "😷", name: "Face Mask",     price: "₹499",   tag: null,          alt: "GiftUnlock personalized memory face mask with artistic QR code" },
     { emoji: "🛋️", name: "Cushion",       price: "₹699",   tag: null,          alt: "GiftUnlock personalized memory cushion with artistic QR code" },
     { emoji: "☕", name: "Coffee Mug",    price: "₹699",   tag: null,          alt: "GiftUnlock personalized memory coffee mug with artistic QR code" },
     { emoji: "💧", name: "Water Bottle",  price: "₹899",   tag: null,          alt: "GiftUnlock personalized memory water bottle with artistic QR code" },
@@ -553,7 +553,7 @@ function Testimonials() {
   const reviews = [
     { quote: "My dad cried when he scanned the QR on his mug. Best birthday gift I have ever given.", name: "Priya S.",  city: "Mumbai",    initial: "P" },
     { quote: "The artistic QR was stunning. Every guest at the party kept asking where I got it from.", name: "Rohan K.",  city: "Delhi",     initial: "R" },
-    { quote: "All 8 of us uploaded college memories. One QR, one hoodie, one hundred happy tears. 😭",  name: "Anjali M.", city: "Bangalore", initial: "A" },
+    { quote: "All 8 of us uploaded college memories. One QR, one gift, one hundred happy tears. 😭",  name: "Anjali M.", city: "Bangalore", initial: "A" },
   ];
   return (
     <section className="py-24" style={{ background: "#0A0A0B" }}>

@@ -42,7 +42,7 @@ const INITIAL: FormState = {
 
 /* ─── Pricing ───────────────────────────────────────────── */
 const BASE_PRICES: Record<string, number> = {
-  "T-Shirt": 899, "Beer Mug": 799, Hoodie: 1299, Cushion: 699,
+  "T-Shirt": 899, "Beer Mug": 799, Cushion: 699,
   "Coffee Mug": 699, "Water Bottle": 899, "Face Mask": 499,
 };
 const NFC_ADDON = 800;
@@ -50,9 +50,9 @@ function getPrice(product: string, tier: string) {
   return (BASE_PRICES[product] ?? 0) + (tier === "NFC VIP" ? NFC_ADDON : 0);
 }
 
-const PRODUCTS_WITH_SIZE: readonly string[] = ["T-Shirt", "Hoodie"];
+const PRODUCTS_WITH_SIZE: readonly string[] = ["T-Shirt"];
 const PRODUCT_EMOJIS: Record<string, string> = {
-  "T-Shirt": "👕", "Beer Mug": "🍺", Hoodie: "🧥", Cushion: "🛋️",
+  "T-Shirt": "👕", "Beer Mug": "🍺", Cushion: "🛋️",
   "Coffee Mug": "☕", "Water Bottle": "💧", "Face Mask": "😷",
 };
 const MAX_FILE_MB = 50;
@@ -95,7 +95,6 @@ function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState
   const products = [
     { id: "T-Shirt",      desc: "Unisex 180 GSM cotton" },
     { id: "Beer Mug",     desc: "11oz ceramic mug" },
-    { id: "Hoodie",       desc: "350 GSM unisex fleece" },
     { id: "Cushion",      desc: "30×30 cm with insert" },
     { id: "Coffee Mug",   desc: "11oz ceramic mug" },
     { id: "Water Bottle", desc: "750ml stainless steel" },
