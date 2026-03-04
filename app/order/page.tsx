@@ -50,7 +50,6 @@ function getPrice(product: string, tier: string) {
   return (BASE_PRICES[product] ?? 0) + (tier === "NFC VIP" ? NFC_ADDON : 0);
 }
 
-/* ─── Constants ──────────────────────────────────────────── */
 const PRODUCTS_WITH_SIZE: readonly string[] = ["T-Shirt", "Hoodie"];
 const PRODUCT_EMOJIS: Record<string, string> = {
   "T-Shirt": "👕", "Beer Mug": "🍺", Hoodie: "🧥", Cushion: "🛋️",
@@ -63,7 +62,6 @@ const MAX_VIDEOS  = 3;
 const isPhoto = (f: File) => f.type.startsWith("image/");
 const isVideo = (f: File) => f.type.startsWith("video/");
 
-/* ─── Razorpay helpers ──────────────────────────────────── */
 function loadRazorpay(): Promise<boolean> {
   return new Promise((resolve) => {
     if (typeof window !== "undefined" && window.Razorpay) { resolve(true); return; }
@@ -85,7 +83,6 @@ async function uploadMedia(files: File[]): Promise<string[]> {
   return urls as string[];
 }
 
-/* ─── Shared card style ─────────────────────────────────── */
 const card = (sel = false) => ({
   background: sel ? "linear-gradient(145deg,#1e1a0a,#1A1A24)" : "linear-gradient(145deg,#1A1A24,#111116)",
   border: sel ? "1.5px solid #FFB800" : "1px solid rgba(255,184,0,0.12)",
@@ -93,9 +90,7 @@ const card = (sel = false) => ({
   boxShadow: sel ? "0 0 20px rgba(255,184,0,0.15)" : "none",
 });
 
-/* ═══════════════════════════════════════════════════════════
-   STEP 1 — Product
-═══════════════════════════════════════════════════════════ */
+/* ─── Step 1: Product ───────────────────────────────────── */
 function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
   const products = [
     { id: "T-Shirt",      desc: "Unisex 180 GSM cotton" },
@@ -146,9 +141,7 @@ function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STEP 2 — Tier (Fix 5: comparison table)
-═══════════════════════════════════════════════════════════ */
+/* ─── Step 2: Tier ──────────────────────────────────────── */
 function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
   const base = BASE_PRICES[form.productType] ?? 899;
   const tiers = [
@@ -158,12 +151,12 @@ function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v
       features: ["Everything in QR Classic", "Embedded NFC chip (tap to unlock)", "Premium gift box packaging", "Priority 24hr production + express shipping"] },
   ];
   const compare = [
-    { feature: "Artistic QR code",       classic: true,  nfc: true  },
-    { feature: "Cinematic memory video", classic: true,  nfc: true  },
-    { feature: "YouTube Unlisted link",  classic: true,  nfc: true  },
-    { feature: "NFC tap-to-unlock chip", classic: false, nfc: true  },
-    { feature: "Premium gift box",       classic: false, nfc: true  },
-    { feature: "24hr priority production",classic:false, nfc: true  },
+    { feature: "Artistic QR code",        classic: true,  nfc: true  },
+    { feature: "Cinematic memory video",  classic: true,  nfc: true  },
+    { feature: "YouTube Unlisted link",   classic: true,  nfc: true  },
+    { feature: "NFC tap-to-unlock chip",  classic: false, nfc: true  },
+    { feature: "Premium gift box",        classic: false, nfc: true  },
+    { feature: "24hr priority production",classic: false, nfc: true  },
   ];
   return (
     <div className="space-y-6">
@@ -197,7 +190,6 @@ function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v
           );
         })}
       </div>
-      {/* Comparison table */}
       <div className="rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,184,0,0.1)" }}>
         <div className="grid grid-cols-3 text-xs font-bold py-2.5 px-4"
           style={{ background: "rgba(255,184,0,0.08)", color: "#FFB800" }}>
@@ -216,9 +208,7 @@ function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STEP 3 — Media Upload (Fix 4 + Fix 5: group memory toggle)
-═══════════════════════════════════════════════════════════ */
+/* ─── Step 3: Media Upload ──────────────────────────────── */
 function Step3Media({ form, setFiles, setBool, setStr }:
   { form: FormState; setFiles: (f: File[]) => void; setBool: (k: keyof FormState, v: boolean) => void; setStr: (k: keyof FormState, v: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -247,9 +237,8 @@ function Step3Media({ form, setFiles, setBool, setStr }:
   const remove = (i: number) => setFiles(form.mediaFiles.filter((_, idx) => idx !== i));
   const photoCount = form.mediaFiles.filter(isPhoto).length;
   const videoCount = form.mediaFiles.filter(isVideo).length;
-
-  const fileMb  = (f: File) => f.size / (1024 * 1024);
-  const fileOk  = (f: File) => fileMb(f) <= MAX_FILE_MB * 0.9;
+  const fileMb = (f: File) => f.size / (1024 * 1024);
+  const fileOk = (f: File) => fileMb(f) <= MAX_FILE_MB * 0.9;
 
   return (
     <div className="space-y-5">
@@ -257,8 +246,6 @@ function Step3Media({ form, setFiles, setBool, setStr }:
         <h2 className="text-2xl font-black text-white mb-1">Upload Your Memories</h2>
         <p className="text-sm" style={{ color: "#4A4A58" }}>Add your best photos &amp; video clips below.</p>
       </div>
-
-      {/* Fix 4 — Yellow upload guidelines box */}
       <div className="flex items-start gap-3 p-4 rounded-xl"
         style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.3)" }}>
         <span className="text-lg shrink-0">📁</span>
@@ -266,8 +253,6 @@ function Step3Media({ form, setFiles, setBool, setStr }:
           Upload at least <strong>1 clear selfie or photo</strong> · Up to <strong>3 video clips</strong> · Max <strong>50 MB per file</strong> · <strong>10–25 seconds</strong> per video recommended
         </p>
       </div>
-
-      {/* Drop zone */}
       <button onClick={() => inputRef.current?.click()}
         onDragOver={e => { e.preventDefault(); setDragging(true); }}
         onDragLeave={() => setDragging(false)}
@@ -283,8 +268,6 @@ function Step3Media({ form, setFiles, setBool, setStr }:
           <p className="text-xs mt-0.5" style={{ color: "#4A4A58" }}>JPG, PNG, MP4, MOV · Max 50 MB each</p>
         </div>
       </button>
-
-      {/* Counters */}
       <div className="flex items-center justify-between text-xs">
         <span style={{ color: "#FFB800" }}>Short vertical clips (10–25 sec) work best 📱</span>
         <span className="flex gap-3">
@@ -292,21 +275,17 @@ function Step3Media({ form, setFiles, setBool, setStr }:
           <span style={{ color: videoCount >= MAX_VIDEOS ? "#22c55e" : "#FFB800" }}>Videos: {videoCount}/{MAX_VIDEOS}</span>
         </span>
       </div>
-
       <input ref={inputRef} type="file" multiple accept="image/*,video/*" className="hidden"
         onChange={e => addFiles(e.target.files)} />
-
-      {/* Fix 4 — File list with ✅/⚠️ size indicator */}
       {form.mediaFiles.length > 0 && (
         <div className="space-y-2">
           {form.mediaFiles.map((file, i) => {
-            const mb   = fileMb(file);
-            const ok   = fileOk(file);
+            const mb = fileMb(file);
+            const ok = fileOk(file);
             return (
               <div key={`${file.name}-${i}`} className="flex items-center gap-3 p-3 rounded-xl"
                 style={{ background: "rgba(255,184,0,0.04)", border: `1px solid ${ok ? "rgba(255,184,0,0.1)" : "rgba(255,107,53,0.25)"}` }}>
-                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: "rgba(255,184,0,0.1)" }}>
+                <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ background: "rgba(255,184,0,0.1)" }}>
                   {isPhoto(file) ? <Image size={15} style={{ color: "#FFB800" }} /> : <Film size={15} style={{ color: "#FF9A3C" }} />}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -321,7 +300,6 @@ function Step3Media({ form, setFiles, setBool, setStr }:
           })}
         </div>
       )}
-
       {rejection && (
         <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
           style={{ background: "rgba(255,107,53,0.08)", border: "1px solid rgba(255,107,53,0.2)", color: "#FF9A3C" }}>
@@ -334,8 +312,6 @@ function Step3Media({ form, setFiles, setBool, setStr }:
           <AlertCircle size={14} /> At least one selfie photo is required to continue.
         </div>
       )}
-
-      {/* Fix 5 — Group Memory toggle */}
       <div className="rounded-2xl p-5 space-y-4" style={{ background: "linear-gradient(145deg,#1a1500,#111116)", border: "1px solid rgba(255,184,0,0.2)" }}>
         <div className="flex items-center justify-between">
           <div>
@@ -371,9 +347,7 @@ function Step3Media({ form, setFiles, setBool, setStr }:
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STEP 4 — Personalization (Fix 5: recipientName + occasionDate)
-═══════════════════════════════════════════════════════════ */
+/* ─── Step 4: Personalization ───────────────────────────── */
 function Step4Personalization({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
   const occasions = ["Birthday 🎂", "Wedding 💍", "Holi 🌸", "Anniversary ❤️", "Proposal 💑", "Graduation 🎓", "Farewell 👋", "Other ✨"];
   return (
@@ -382,8 +356,6 @@ function Step4Personalization({ form, set }: { form: FormState; set: (k: keyof F
         <h2 className="text-2xl font-black text-white mb-1">Personalization</h2>
         <p className="text-sm" style={{ color: "#4A4A58" }}>Tell us about the moment &amp; who it&apos;s for.</p>
       </div>
-
-      {/* Recipient name */}
       <div>
         <label className="block text-sm font-semibold text-white mb-1.5">Recipient&apos;s Name</label>
         <div className="relative">
@@ -396,8 +368,6 @@ function Step4Personalization({ form, set }: { form: FormState; set: (k: keyof F
             onBlur={e => (e.target.style.borderColor = "rgba(255,184,0,0.15)")} />
         </div>
       </div>
-
-      {/* Occasion */}
       <div>
         <label className="block text-sm font-semibold text-white mb-2">Occasion</label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -407,15 +377,12 @@ function Step4Personalization({ form, set }: { form: FormState; set: (k: keyof F
             return (
               <button key={o} onClick={() => set("occasion", val)}
                 className="py-2.5 px-3 rounded-xl text-sm font-medium transition-all"
-                style={{ background: sel ? "#FFB800" : "rgba(255,184,0,0.07)",
-                  color: sel ? "#0A0A0B" : "#4A4A58",
+                style={{ background: sel ? "#FFB800" : "rgba(255,184,0,0.07)", color: sel ? "#0A0A0B" : "#4A4A58",
                   border: sel ? "none" : "1px solid rgba(255,184,0,0.12)" }}>{o}</button>
             );
           })}
         </div>
       </div>
-
-      {/* Occasion date */}
       <div>
         <label className="block text-sm font-semibold text-white mb-1.5">Occasion Date <span className="font-normal" style={{ color: "#4A4A58" }}>(optional)</span></label>
         <div className="relative">
@@ -427,8 +394,6 @@ function Step4Personalization({ form, set }: { form: FormState; set: (k: keyof F
             onBlur={e => (e.target.style.borderColor = "rgba(255,184,0,0.15)")} />
         </div>
       </div>
-
-      {/* Personal message */}
       <div>
         <label className="block text-sm font-semibold text-white mb-2">
           Personal message <span className="font-normal" style={{ color: "#4A4A58" }}>(optional)</span>
@@ -446,7 +411,6 @@ function Step4Personalization({ form, set }: { form: FormState; set: (k: keyof F
   );
 }
 
-/* ─── Shared Field ──────────────────────────────────────── */
 function Field({ label, field, placeholder, type = "text", icon: Icon, form, set }:
   { label: string; field: keyof FormState; placeholder: string; type?: string; icon: React.ElementType;
     form: FormState; set: (k: keyof FormState, v: string) => void }) {
@@ -466,9 +430,7 @@ function Field({ label, field, placeholder, type = "text", icon: Icon, form, set
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STEP 5 — Shipping
-═══════════════════════════════════════════════════════════ */
+/* ─── Step 5: Shipping ──────────────────────────────────── */
 function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
   return (
     <div className="space-y-5">
@@ -490,9 +452,7 @@ function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormStat
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   STEP 6 — Review & Pay (Razorpay checkout)
-═══════════════════════════════════════════════════════════ */
+/* ─── Step 6: Review & Pay ──────────────────────────────── */
 function Step6Review({ form, onPay, loading, error }:
   { form: FormState; onPay: () => void; loading: string | null; error: string | null }) {
   const price = getPrice(form.productType, form.tier);
@@ -512,9 +472,9 @@ function Step6Review({ form, onPay, loading, error }:
         style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.12)" }}>
         <Row label="Product" value={`${PRODUCT_EMOJIS[form.productType] ?? ""} ${form.productType}${form.productSize ? ` (${form.productSize})` : ""}`} />
         <Row label="Tier"    value={form.tier} />
-        {form.recipientName && <Row label="For"       value={form.recipientName} />}
-        {form.occasion      && <Row label="Occasion"  value={form.occasion} />}
-        {form.occasionDate  && <Row label="Date"      value={form.occasionDate} />}
+        {form.recipientName && <Row label="For"      value={form.recipientName} />}
+        {form.occasion      && <Row label="Occasion" value={form.occasion} />}
+        {form.occasionDate  && <Row label="Date"     value={form.occasionDate} />}
         <Row label="Media files"  value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}${form.groupMemory ? " + group uploads" : ""}`} />
         <Row label="Shipping to"  value={`${form.customerName}, ${form.city}, ${form.pincode}`} />
         <Row label="Phone"        value={form.customerPhone} />
@@ -542,6 +502,18 @@ function Step6Review({ form, onPay, loading, error }:
           <AlertCircle size={13} className="mt-0.5 shrink-0" />{error}
         </div>
       )}
+
+      {/* ── Fix 1: QR scannable reassurance — last thing before Pay button ── */}
+      <div className="flex items-start gap-3 p-4 rounded-xl"
+        style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)" }}>
+        <span className="text-base shrink-0 mt-0.5">✅</span>
+        <p className="text-xs leading-relaxed" style={{ color: "#86efac" }}>
+          Your AI-crafted festive artistic QR (Haldi/Holi style — marigold, roses, fairy lights) is{" "}
+          <strong>manually tested 100% scannable</strong> before printing.{" "}
+          <strong>Free reprint if it ever fails.</strong>
+        </p>
+      </div>
+
       <button onClick={onPay} disabled={!!loading}
         className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition-all hover:scale-[1.01] disabled:opacity-70 disabled:cursor-not-allowed"
         style={{ background: "linear-gradient(135deg,#FFD700 0%,#FFB800 50%,#FF9A3C 100%)", color: "#0A0A0B" }}>
@@ -551,9 +523,7 @@ function Step6Review({ form, onPay, loading, error }:
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PROGRESS BAR
-═══════════════════════════════════════════════════════════ */
+/* ─── Progress Bar ──────────────────────────────────────── */
 const STEP_LABELS = ["Product", "Tier", "Media", "Personalization", "Shipping", "Review"];
 
 function ProgressBar({ step }: { step: number }) {
@@ -577,19 +547,17 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   MAIN PAGE
-═══════════════════════════════════════════════════════════ */
+/* ─── Main Page ─────────────────────────────────────────── */
 export default function OrderPage() {
   const router = useRouter();
-  const [step, setStep]     = useState(1);
-  const [form, setFormState] = useState<FormState>(INITIAL);
+  const [step, setStep]      = useState(1);
+  const [form, setFormState]  = useState<FormState>(INITIAL);
   const [loading, setLoading] = useState<string | null>(null);
   const [error,   setError]   = useState<string | null>(null);
 
-  const set      = (k: keyof FormState, v: string) => setFormState(p => ({ ...p, [k]: v }));
-  const setBool  = (k: keyof FormState, v: boolean) => setFormState(p => ({ ...p, [k]: v }));
-  const setStr   = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
+  const set     = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
+  const setBool = (k: keyof FormState, v: boolean) => setFormState(p => ({ ...p, [k]: v }));
+  const setStr  = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
   const setFiles = (files: File[]) => setFormState(p => ({ ...p, mediaFiles: files }));
 
   const validate = (): string | null => {
@@ -647,8 +615,7 @@ export default function OrderPage() {
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
         amount: data.amount, currency: data.currency,
-        name: "GiftUnlock.in",
-        description: `${form.productType} — ${form.tier}`,
+        name: "GiftUnlock.in", description: `${form.productType} — ${form.tier}`,
         order_id: data.orderId,
         prefill: { name: form.customerName, contact: form.customerPhone },
         theme: { color: "#FFB800" },
@@ -668,12 +635,12 @@ export default function OrderPage() {
 
   const renderStep = () => {
     switch (step) {
-      case 1: return <Step1Product           form={form} set={set} />;
-      case 2: return <Step2Tier              form={form} set={set} />;
-      case 3: return <Step3Media             form={form} setFiles={setFiles} setBool={setBool} setStr={setStr} />;
-      case 4: return <Step4Personalization   form={form} set={set} />;
-      case 5: return <Step5Shipping          form={form} set={set} />;
-      case 6: return <Step6Review            form={form} onPay={handlePay} loading={loading} error={error} />;
+      case 1: return <Step1Product         form={form} set={set} />;
+      case 2: return <Step2Tier            form={form} set={set} />;
+      case 3: return <Step3Media           form={form} setFiles={setFiles} setBool={setBool} setStr={setStr} />;
+      case 4: return <Step4Personalization form={form} set={set} />;
+      case 5: return <Step5Shipping        form={form} set={set} />;
+      case 6: return <Step6Review          form={form} onPay={handlePay} loading={loading} error={error} />;
     }
   };
 
@@ -697,7 +664,6 @@ export default function OrderPage() {
         </div>
         <div className="text-xs font-semibold" style={{ color: "#4A4A58" }}>{step}/{STEP_LABELS.length}</div>
       </div>
-
       <div className="max-w-lg mx-auto px-4 py-8">
         <ProgressBar step={step} />
         <div key={step} style={{ animation: "fadeInUp 0.35s ease both" }}>{renderStep()}</div>
