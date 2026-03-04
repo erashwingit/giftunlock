@@ -666,6 +666,24 @@ function Step5Shipping({ form, set, fieldErrors, setFieldErrors }:
   );
 }
 
+/* ─── Occasion → QR style map ───────────────────────────── */
+const QR_STYLE_MAP: Record<string, string> = {
+  Birthday:    "birthday-themed — balloons, confetti, stars",
+  Anniversary: "romantic — roses, hearts, golden lights",
+  Wedding:     "wedding-style — floral, ivory roses, fairy lights",
+  Haldi:       "festive — marigold, roses, haldi splashes",
+  Holi:        "festive — marigold, roses, haldi splashes",
+  Graduation:  "achievement-themed — stars, laurels, confetti",
+  "Baby Shower": "soft pastel — stars, clouds, baby pink/blue tones",
+  Farewell:    "warm memory — bokeh lights, golden hues",
+  "Valentine's Day": "romantic — red roses, hearts, candlelight",
+  "Mother's Day":    "floral — pink roses, warmth, golden tones",
+  "Father's Day":    "classic — bold geometric, warm browns",
+};
+function getQrStyle(occasion: string): string {
+  return QR_STYLE_MAP[occasion] ?? "artistically designed for your occasion";
+}
+
 /* ─── Step 6: Review & Pay ──────────────────────────────── */
 function Step6Review({ form, onPay, loading, error }:
   { form: FormState; onPay: () => void; loading: string | null; error: string | null }) {
@@ -721,7 +739,7 @@ function Step6Review({ form, onPay, loading, error }:
         style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)" }}>
         <span className="text-base shrink-0 mt-0.5">✅</span>
         <p className="text-xs leading-relaxed" style={{ color: "#86efac" }}>
-          Your AI-crafted festive artistic QR (Haldi/Holi style — marigold, roses, fairy lights) is{" "}
+          Your AI-crafted <strong>{getQrStyle(form.occasion)}</strong> QR is{" "}
           <strong>manually tested 100% scannable</strong> before printing.{" "}
           <strong>Free reprint if it ever fails.</strong>
         </p>
