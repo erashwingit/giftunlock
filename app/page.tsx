@@ -899,7 +899,7 @@ function Footer() {
               Unlock the Memory They Will Never Forget. Emotional memory gifts — T-shirts, mugs, hoodies &amp; cushions — shipped across India.
             </p>
             <a
-              href="https://wa.me/919999999999"
+              href="https://wa.me/916396151569"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors"

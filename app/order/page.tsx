@@ -382,36 +382,178 @@ function Step4Occasion({ form, set }: { form: FormState; set: (k: keyof FormStat
   );
 }
 
-/* ─── Step 5: Shipping ──────────────────────────────────── */
-function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
-  const Field = ({
-    label, field, placeholder, type = "text", icon: Icon,
-  }: {
-    label: string;
-    field: keyof FormState;
-    placeholder: string;
-    type?: string;
-    icon: React.ElementType;
-  }) => (
+/* ─── Indian States list ────────────────────────────────── */
+const INDIAN_STATES = [
+  "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh",
+  "Assam", "Bihar", "Chandigarh", "Chhattisgarh",
+  "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat",
+  "Haryana", "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand",
+  "Karnataka", "Kerala", "Ladakh", "Lakshadweep", "Madhya Pradesh",
+  "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha",
+  "Puducherry", "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana",
+  "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal",
+];
+
+/** Best-effort state guess from first 2 digits of pincode */
+function guessStateFromPincode(pin: string): string {
+  const n = parseInt(pin.slice(0, 2), 10);
+  if (n === 11) return "Delhi";
+  if (n >= 12 && n <= 13) return "Haryana";
+  if (n >= 14 && n <= 16) return "Punjab";
+  if (n === 17) return "Himachal Pradesh";
+  if (n >= 18 && n <= 19) return "Jammu and Kashmir";
+  if (n >= 20 && n <= 28) return "Uttar Pradesh";
+  if (n >= 30 && n <= 34) return "Rajasthan";
+  if (n >= 36 && n <= 39) return "Gujarat";
+  if (n >= 40 && n <= 44) return "Maharashtra";
+  if (n >= 45 && n <= 48) return "Madhya Pradesh";
+  if (n === 49) return "Chhattisgarh";
+  if (n >= 50 && n <= 53) return "Telangana";
+  if (n >= 56 && n <= 59) return "Karnataka";
+  if (n >= 60 && n <= 64) return "Tamil Nadu";
+  if (n >= 67 && n <= 69) return "Kerala";
+  if (n >= 70 && n <= 74) return "West Bengal";
+  if (n >= 75 && n <= 77) return "Odisha";
+  if (n === 78) return "Assam";
+  if (n >= 80 && n <= 85) return "Bihar";
+  return "";
+}
+
+/* ─── Shipping field validators ─────────────────────────── */
+const SHIP_VALIDATORS: Record<string, (v: string) => string> = {
+  customerName: (v) => {
+    if (!v.trim() || !/^[A-Za-z\s]{3,}$/.test(v.trim()))
+      return "Enter your full name (letters only)";
+    return "";
+  },
+  customerPhone: (v) => {
+    // Normalize: strip optional +91 prefix, spaces, and dashes so users
+    // can type "+91 98765 43210" or "9876543210" — both accepted
+    const normalized = v.replace(/^\+?91[\s\-]?/, "").replace(/[\s\-]/g, "");
+    if (!/^[6-9][0-9]{9}$/.test(normalized))
+      return "Enter a valid 10-digit Indian mobile number";
+    return "";
+  },
+  addressLine1: (v) => {
+    const t = v.trim();
+    if (t.length < 10) return "Please enter a complete address";
+    // Reject all-same character or very short numeric-only strings
+    if (/^(.)\1+$/.test(t)) return "Please enter a complete address";
+    if (/^[0-9]{1,5}$/.test(t)) return "Please enter a complete address";
+    return "";
+  },
+  city: (v) => {
+    if (!/^[A-Za-z\s]{2,}$/.test(v.trim())) return "Enter a valid city name";
+    return "";
+  },
+  state: (v) => {
+    if (!v) return "Please select your state";
+    return "";
+  },
+  pincode: (v) => {
+    if (!/^[1-9][0-9]{5}$/.test(v.trim()))
+      return "Enter a valid 6-digit Indian pincode";
+    return "";
+  },
+};
+
+export type ShippingErrors = Partial<Record<keyof FormState, string>>;
+
+/** Validate all shipping fields and return a map of errors */
+export function validateShippingFields(form: FormState): ShippingErrors {
+  const keys = ["customerName", "customerPhone", "addressLine1", "city", "state", "pincode"] as const;
+  const errors: ShippingErrors = {};
+  for (const key of keys) {
+    const msg = SHIP_VALIDATORS[key]?.(form[key] as string) ?? "";
+    if (msg) errors[key] = msg;
+  }
+  return errors;
+}
+
+/* ─── Stable ShippingField component (defined at module level) ──
+   IMPORTANT: must NOT be defined inside Step5Shipping — doing so
+   creates a new component type on every render, causing React to
+   unmount/remount the input on every keystroke (focus loss bug).   */
+interface ShippingFieldProps {
+  label: string;
+  value: string;
+  placeholder: string;
+  type?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
+  icon: React.ElementType;
+  error?: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+}
+
+function ShippingField({
+  label, value, placeholder, type = "text", inputMode, maxLength,
+  icon: Icon, error, onChange, onBlur,
+}: ShippingFieldProps) {
+  const [focused, setFocused] = useState(false);
+  const border = error
+    ? "1px solid rgba(239,68,68,0.8)"
+    : focused
+    ? "1px solid rgba(255,184,0,0.4)"
+    : "1px solid rgba(255,184,0,0.15)";
+
+  return (
     <div>
       <label className="block text-sm font-semibold text-white mb-1.5">{label}</label>
       <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2">
-          <Icon size={15} style={{ color: "#4A4A58" }} />
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
+          <Icon size={15} style={{ color: error ? "#f87171" : "#4A4A58" }} />
         </div>
         <input
           type={type}
-          value={form[field] as string}
-          onChange={(e) => set(field, e.target.value)}
+          inputMode={inputMode}
+          maxLength={maxLength}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); onBlur(); }}
           placeholder={placeholder}
           className="w-full pl-9 pr-4 py-3 rounded-xl text-sm text-white outline-none transition-all"
-          style={{ background: "rgba(17,17,22,0.8)", border: "1px solid rgba(255,184,0,0.15)" }}
-          onFocus={(e) => (e.target.style.borderColor = "rgba(255,184,0,0.4)")}
-          onBlur={(e) => (e.target.style.borderColor = "rgba(255,184,0,0.15)")}
+          style={{ background: "rgba(17,17,22,0.8)", border }}
         />
       </div>
+      {error && (
+        <p className="mt-1 text-xs flex items-center gap-1" style={{ color: "#f87171" }}>
+          <AlertCircle size={11} /> {error}
+        </p>
+      )}
     </div>
   );
+}
+
+/* ─── Step 5: Shipping ──────────────────────────────────── */
+function Step5Shipping({
+  form,
+  set,
+  fieldErrors,
+  setFieldErrors,
+}: {
+  form: FormState;
+  set: (k: keyof FormState, v: string) => void;
+  fieldErrors: ShippingErrors;
+  setFieldErrors: (e: ShippingErrors) => void;
+}) {
+  /** Validate a single field on blur without touching sibling fields */
+  const blurValidate = (field: keyof FormState) => {
+    const msg = SHIP_VALIDATORS[field as string]?.(form[field] as string) ?? "";
+    setFieldErrors({ ...fieldErrors, [field]: msg });
+  };
+
+  /** Pincode: digits only, max 6; auto-prefill state when valid */
+  const handlePincodeChange = (v: string) => {
+    const digits = v.replace(/\D/g, "").slice(0, 6);
+    set("pincode", digits);
+    if (/^[1-9][0-9]{5}$/.test(digits) && !form.state) {
+      const guessed = guessStateFromPincode(digits);
+      if (guessed) set("state", guessed);
+    }
+  };
 
   return (
     <div className="space-y-5">
@@ -421,14 +563,86 @@ function Step5Shipping({ form, set }: { form: FormState; set: (k: keyof FormStat
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Full Name" field="customerName" placeholder="Priya Sharma" icon={User} />
-        <Field label="Mobile Number" field="customerPhone" placeholder="+91 98765 43210" type="tel" icon={Phone} />
+        <ShippingField
+          label="Full Name" placeholder="Priya Sharma"
+          icon={User} value={form.customerName} error={fieldErrors.customerName}
+          onChange={(v) => set("customerName", v)}
+          onBlur={() => blurValidate("customerName")}
+        />
+        <ShippingField
+          label="Mobile Number" placeholder="9876543210"
+          type="tel" inputMode="numeric"
+          icon={Phone} value={form.customerPhone} error={fieldErrors.customerPhone}
+          onChange={(v) => set("customerPhone", v)}
+          onBlur={() => blurValidate("customerPhone")}
+        />
       </div>
-      <Field label="Address Line 1" field="addressLine1" placeholder="Flat no, Street, Locality" icon={MapPin} />
-      <div className="grid grid-cols-3 gap-3">
-        <Field label="City" field="city" placeholder="Mumbai" icon={MapPin} />
-        <Field label="State" field="state" placeholder="Maharashtra" icon={MapPin} />
-        <Field label="Pincode" field="pincode" placeholder="400001" type="number" icon={MapPin} />
+
+      <ShippingField
+        label="Address Line 1" placeholder="Flat no, Street, Locality, Area"
+        icon={MapPin} value={form.addressLine1} error={fieldErrors.addressLine1}
+        onChange={(v) => set("addressLine1", v)}
+        onBlur={() => blurValidate("addressLine1")}
+      />
+
+      <div className="grid grid-cols-2 gap-3">
+        <ShippingField
+          label="City" placeholder="Mumbai"
+          icon={MapPin} value={form.city} error={fieldErrors.city}
+          onChange={(v) => set("city", v)}
+          onBlur={() => blurValidate("city")}
+        />
+
+        {/* Pincode uses a custom onChange to strip non-digits */}
+        <ShippingField
+          label="Pincode" placeholder="400001"
+          inputMode="numeric" maxLength={6}
+          icon={MapPin} value={form.pincode} error={fieldErrors.pincode}
+          onChange={handlePincodeChange}
+          onBlur={() => blurValidate("pincode")}
+        />
+      </div>
+
+      {/* State — dropdown (not free-text) */}
+      <div>
+        <label className="block text-sm font-semibold text-white mb-1.5">State</label>
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
+            <MapPin size={15} style={{ color: fieldErrors.state ? "#f87171" : "#4A4A58" }} />
+          </div>
+          <select
+            value={form.state}
+            onChange={(e) => {
+              set("state", e.target.value);
+              // Clear error immediately on valid selection
+              if (fieldErrors.state)
+                setFieldErrors({ ...fieldErrors, state: "" });
+            }}
+            onBlur={() => blurValidate("state")}
+            className="w-full pl-9 pr-4 py-3 rounded-xl text-sm outline-none transition-all appearance-none"
+            style={{
+              background: "rgba(17,17,22,0.8)",
+              border: fieldErrors.state
+                ? "1px solid rgba(239,68,68,0.8)"
+                : "1px solid rgba(255,184,0,0.15)",
+              color: form.state ? "#ffffff" : "#4A4A58",
+            }}
+          >
+            <option value="" disabled style={{ color: "#4A4A58", background: "#111116" }}>
+              Select state…
+            </option>
+            {INDIAN_STATES.map((s) => (
+              <option key={s} value={s} style={{ background: "#111116", color: "#fff" }}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
+        {fieldErrors.state && (
+          <p className="mt-1 text-xs flex items-center gap-1" style={{ color: "#f87171" }}>
+            <AlertCircle size={11} /> {fieldErrors.state}
+          </p>
+        )}
       </div>
     </div>
   );
@@ -585,6 +799,8 @@ export default function OrderPage() {
   const [form, setFormState] = useState<FormState>(INITIAL);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Field-level errors for the shipping step */
+  const [fieldErrors, setFieldErrors] = useState<ShippingErrors>({});
 
   const set = (key: keyof FormState, value: string) =>
     setFormState((prev) => ({ ...prev, [key]: value }));
@@ -607,8 +823,11 @@ export default function OrderPage() {
       case 4:
         return null; // optional
       case 5: {
-        const required = [form.customerName, form.customerPhone, form.addressLine1, form.city, form.state, form.pincode];
-        return required.some((v) => !v.trim()) ? "Please fill all shipping fields." : null;
+        /* Run full field-level validation and surface errors inline */
+        const errors = validateShippingFields(form);
+        setFieldErrors(errors);
+        const hasErrors = Object.values(errors).some(Boolean);
+        return hasErrors ? "Please fix the errors highlighted above." : null;
       }
       default:
         return null;
@@ -710,7 +929,7 @@ export default function OrderPage() {
       case 2: return <Step2Tier form={form} set={set} />;
       case 3: return <Step3Media form={form} setFiles={setFiles} />;
       case 4: return <Step4Occasion form={form} set={set} />;
-      case 5: return <Step5Shipping form={form} set={set} />;
+      case 5: return <Step5Shipping form={form} set={set} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} />;
       case 6: return <Step6Review form={form} onPay={handlePay} loading={loading} error={error} />;
     }
   };
