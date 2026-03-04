@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { computeAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Only intercept /admin/* routes
