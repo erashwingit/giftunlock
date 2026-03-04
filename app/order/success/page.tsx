@@ -17,35 +17,48 @@ function SuccessContent() {
   const tier    = params.get("tier") ?? "";
   const name    = params.get("name") ?? "Friend";
 
-  const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? "https://giftunlock.in";
-  const playUrl  = `${appUrl}/play/${slug}`;
-  const squadUrl = `${appUrl}/squad/${slug}`;
+  /* playUrl for display only — uses hardcoded domain so it always looks right */
+  const playUrl = `https://giftunlock.in/play/${slug}`;
 
   /* ── Copy to clipboard ──────────────────────────────── */
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(squadUrl);
-    } catch {
-      /* Fallback for browsers/contexts where clipboard API is unavailable */
+    /* Build URL at click time using the real origin — never relies on
+       a build-time env var that may be undefined in production. */
+    const url = `${window.location.origin}/squad/${slug}`;
+    let success = false;
+
+    /* Primary: modern Clipboard API (requires HTTPS — always true on giftunlock.in) */
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(url);
+        success = true;
+      } catch {
+        /* fall through to execCommand */
+      }
+    }
+
+    /* Fallback: legacy execCommand for older/restricted browsers */
+    if (!success) {
       try {
         const ta = document.createElement("textarea");
-        ta.value = squadUrl;
-        ta.style.position = "fixed";
-        ta.style.opacity = "0";
+        ta.value = url;
+        ta.style.cssText = "position:fixed;top:0;left:0;opacity:0;pointer-events:none";
         document.body.appendChild(ta);
         ta.focus();
         ta.select();
-        document.execCommand("copy");
+        success = document.execCommand("copy");
         document.body.removeChild(ta);
       } catch {
-        /* Silently fail — nothing more we can do */
-        return;
+        success = false;
       }
     }
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+
+    if (success) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
   };
 
   const timeline = [

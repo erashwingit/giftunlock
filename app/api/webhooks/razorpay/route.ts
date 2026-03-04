@@ -34,13 +34,25 @@ export async function POST(req: NextRequest) {
 
       if (orderId) {
         const supabase = createAdminClient();
-        const { error } = await supabase
-          .from("orders")
-          .update({ payment_status: "paid" })
-          .eq("razorpay_order_id", orderId);
 
-        if (error) console.error("DB update error:", error);
-        else console.log("Order marked paid:", orderId);
+        /* Idempotency: skip update if order is already paid */
+        const { data: existing } = await supabase
+          .from("orders")
+          .select("payment_status")
+          .eq("razorpay_order_id", orderId)
+          .single();
+
+        if (existing?.payment_status === "paid") {
+          console.log("Order already paid (idempotent skip):", orderId);
+        } else {
+          const { error } = await supabase
+            .from("orders")
+            .update({ payment_status: "paid" })
+            .eq("razorpay_order_id", orderId);
+
+          if (error) console.error("DB update error:", error);
+          else console.log("Order marked paid:", orderId);
+        }
       }
     }
 
@@ -49,10 +61,20 @@ export async function POST(req: NextRequest) {
       const orderId: string = event.payload?.payment?.entity?.order_id;
       if (orderId) {
         const supabase = createAdminClient();
-        await supabase
+
+        /* Idempotency: skip update if order is already paid (don't overwrite) */
+        const { data: existing } = await supabase
           .from("orders")
-          .update({ payment_status: "failed" })
-          .eq("razorpay_order_id", orderId);
+          .select("payment_status")
+          .eq("razorpay_order_id", orderId)
+          .single();
+
+        if (existing?.payment_status !== "paid") {
+          await supabase
+            .from("orders")
+            .update({ payment_status: "failed" })
+            .eq("razorpay_order_id", orderId);
+        }
       }
     }
 
