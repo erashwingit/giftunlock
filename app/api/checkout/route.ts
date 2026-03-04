@@ -42,10 +42,19 @@ async function createRazorpayOrder(
   return (await res.json()) as { id: string; amount: number; currency: string };
 }
 
-/** POST /api/checkout
- *  Body: { customerName, customerPhone, shippingAddress, productType,
- *          productSize?, tier, occasion?, mediaUrls: string[] }
- *  Returns: { orderId, amount, currency, secureSlug, bypass? }
+/**
+ * POST /api/checkout
+ *
+ * Body: {
+ *   customerName, customerPhone, shippingAddress,
+ *   productType, productSize?, tier, occasion?,
+ *   mediaUrls: string[],
+ *   secureSlug?: string  ← client-provided slug (used when media was
+ *                          pre-uploaded to /orders/{secureSlug}/…).
+ *                          Falls back to a fresh generated slug if absent.
+ * }
+ *
+ * Returns: { orderId, amount, currency, secureSlug, bypass? }
  */
 export async function POST(req: NextRequest) {
   try {
@@ -59,6 +68,7 @@ export async function POST(req: NextRequest) {
       tier,
       occasion,
       mediaUrls = [],
+      secureSlug: clientSlug,
     } = body as {
       customerName: string;
       customerPhone: string;
@@ -68,16 +78,27 @@ export async function POST(req: NextRequest) {
       tier: string;
       occasion?: string;
       mediaUrls: string[];
+      secureSlug?: string;
     };
 
-    /* ── Validate ──────────────────────────────────────── */
+    /* ── Validate required fields ──────────────────────── */
     if (!customerName || !customerPhone || !shippingAddress || !productType || !tier) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    /* ── Slug + pricing ────────────────────────────────── */
-    const secureSlug = generateSlug(8);
-    const base = BASE_PRICES[productType] ?? 899;
+    /* ── Resolve secureSlug ────────────────────────────────────────────────
+     * Prefer the client-provided slug so the order record matches the
+     * storage path where files were already uploaded. Validate the format
+     * (8 lowercase hex chars) before trusting it; fall back to generating
+     * a fresh slug if it's missing or malformed.
+     * ──────────────────────────────────────────────────────────────────── */
+    const isValidSlug = (s: unknown): s is string =>
+      typeof s === "string" && /^[a-f0-9]{8}$/.test(s);
+
+    const secureSlug = isValidSlug(clientSlug) ? clientSlug : generateSlug(8);
+
+    /* ── Pricing ───────────────────────────────────────── */
+    const base   = BASE_PRICES[productType] ?? 899;
     const amount = tier === "NFC VIP" ? base + NFC_ADDON : base;
 
     const supabase = createAdminClient();
@@ -101,16 +122,16 @@ export async function POST(req: NextRequest) {
     const { data: order, error: dbError } = await supabase
       .from("orders")
       .insert({
-        customer_name: customerName,
-        customer_phone: customerPhone,
+        customer_name:    customerName,
+        customer_phone:   customerPhone,
         shipping_address: shippingAddress,
-        product_type: productType,
-        product_size: productSize ?? null,
+        product_type:     productType,
+        product_size:     productSize ?? null,
         tier,
-        occasion: occasion ?? null,
-        media_urls: mediaUrls,
-        secure_slug: secureSlug,
-        payment_status: isDevBypass ? "paid" : "pending",
+        occasion:         occasion ?? null,
+        media_urls:       mediaUrls,
+        secure_slug:      secureSlug,
+        payment_status:   isDevBypass ? "paid" : "pending",
         razorpay_order_id: razorpayOrderId,
       })
       .select("id")
@@ -122,12 +143,12 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      orderId: razorpayOrderId,
-      amount: amount * 100,
-      currency: "INR",
+      orderId:    razorpayOrderId,
+      amount:     amount * 100,
+      currency:   "INR",
       secureSlug,
-      dbOrderId: order.id,
-      bypass: isDevBypass,
+      dbOrderId:  order.id,
+      bypass:     isDevBypass,
     });
   } catch (err) {
     console.error("Checkout error:", err);
