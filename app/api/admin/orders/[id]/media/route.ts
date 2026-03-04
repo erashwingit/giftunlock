@@ -1,9 +1,7 @@
 /**
  * DELETE /api/admin/orders/[id]/media
  *
- * Deletes raw media files (selfie + clips) for a single fulfilled order.
- * Use this after the destination video has been delivered to the customer.
- *
+ * Deletes raw media files for a single fulfilled order.
  * - Removes all files under orders/{secure_slug}/ in Supabase Storage
  * - Clears media_urls on the DB row
  * - Decrements storage_quota.used_bytes
@@ -13,30 +11,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import { deleteOrderMedia } from "@/lib/cleanup";
-
-function isAuthed(req: NextRequest): boolean {
-  const secret =
-    req.headers.get("x-admin-secret") ??
-    req.nextUrl.searchParams.get("secret");
-  return !!secret && secret === process.env.ADMIN_SECRET;
-}
+import { isAdminAuthed } from "@/lib/admin-auth";
 
 export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  if (!isAuthed(req)) {
+  if (!isAdminAuthed(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { id } = await params;
-
-  /* ── Fetch order to get secureSlug ──────────────────────── */
   const supabase = createAdminClient();
 
   const { data: order, error: fetchErr } = await supabase
     .from("orders")
-    .select("id, secure_slug, payment_status, media_urls")
+    .select("id, secure_slug")
     .eq("id", id)
     .single();
 
@@ -44,7 +34,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
 
-  /* ── Delete media ───────────────────────────────────────── */
   const result = await deleteOrderMedia(order.id, order.secure_slug);
 
   if (result.error) {

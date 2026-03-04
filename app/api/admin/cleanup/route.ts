@@ -3,24 +3,16 @@
  *
  * Manually triggers abandoned-upload cleanup (same logic as the Vercel cron).
  * Deletes storage files + DB rows for orders with payment_status
- * IN ('abandoned', 'pending') older than 48 hours.
- *
- * Returns a CleanupResult with counts and MB freed.
+ * IN ('abandoned', 'pending') older than CLEANUP_CUTOFF_MS (48 h).
  *
  * Auth: x-admin-secret header or ?secret= query param.
  */
 import { NextRequest, NextResponse } from "next/server";
 import { cleanAbandonedUploads } from "@/lib/cleanup";
-
-function isAuthed(req: NextRequest): boolean {
-  const secret =
-    req.headers.get("x-admin-secret") ??
-    req.nextUrl.searchParams.get("secret");
-  return !!secret && secret === process.env.ADMIN_SECRET;
-}
+import { isAdminAuthed } from "@/lib/admin-auth";
 
 export async function POST(req: NextRequest) {
-  if (!isAuthed(req)) {
+  if (!isAdminAuthed(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

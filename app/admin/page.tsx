@@ -1,15 +1,12 @@
 "use client";
 
 /**
- * app/admin/page.tsx
+ * app/admin/page.tsx — GiftUnlock Admin Dashboard (Phase 2)
  *
- * GiftUnlock Admin Dashboard
- *
- * New in Phase 2:
- *  • StorageBar  — live usage bar (green/amber/red) + cleanup-eligible count
- *  • CleanupPanel — "Clean Abandoned Uploads >48h" button + session log
- *  • DeleteMediaButton — per-order raw media delete (paid orders only)
- *  • 'abandoned' status badge + filter
+ * • StorageBar  — live usage bar (green/amber/red), stale-while-revalidate on refresh
+ * • CleanupPanel — "Clean Abandoned Uploads >48h" button + session log
+ * • DeleteMediaButton — per-order raw media delete (paid orders only)
+ * • 'abandoned' status badge + filter
  */
 
 import { useState, useEffect, useCallback } from "react";
@@ -64,7 +61,15 @@ function timeAgo(iso: string): string {
 
 /* ─── StorageBar ─────────────────────────────────────────── */
 
-function StorageBar({ stats, onRefresh }: { stats: StorageStats; onRefresh: () => void }) {
+function StorageBar({
+  stats,
+  onRefresh,
+  loading = false,
+}: {
+  stats:      StorageStats;
+  onRefresh:  () => void;
+  loading?:   boolean;
+}) {
   const pct   = Math.min(stats.usedPercent, 100);
   const color =
     pct >= 90 ? "#ef4444" :
@@ -84,7 +89,7 @@ function StorageBar({ stats, onRefresh }: { stats: StorageStats; onRefresh: () =
         border: `1px solid ${color}22`,
       }}
     >
-      {/* Header row */}
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest" style={{ color }}>
@@ -96,12 +101,14 @@ function StorageBar({ stats, onRefresh }: { stats: StorageStats; onRefresh: () =
             </p>
           )}
         </div>
+        {/* Refresh button — shows spinner in-place; bar stays visible */}
         <button
           onClick={onRefresh}
-          className="text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-70"
+          disabled={loading}
+          className="text-xs px-3 py-1 rounded-lg transition-opacity hover:opacity-70 disabled:opacity-40"
           style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}
         >
-          ↻ Refresh
+          {loading ? "…" : "↻ Refresh"}
         </button>
       </div>
 
@@ -125,7 +132,7 @@ function StorageBar({ stats, onRefresh }: { stats: StorageStats; onRefresh: () =
         </div>
       </div>
 
-      {/* Bottom row */}
+      {/* Footer */}
       <div className="flex items-center justify-between text-xs" style={{ color: "#4A4A58" }}>
         <span>
           {stats.cleanupEligibleCount > 0 ? (
@@ -150,13 +157,7 @@ interface CleanupEntry extends CleanupResult {
   id: string;
 }
 
-function CleanupPanel({
-  secret,
-  onDone,
-}: {
-  secret:  string;
-  onDone:  () => void; // refresh storage stats after cleanup
-}) {
+function CleanupPanel({ secret, onDone }: { secret: string; onDone: () => void }) {
   const [running, setRunning] = useState(false);
   const [log,     setLog]     = useState<CleanupEntry[]>([]);
   const [err,     setErr]     = useState("");
@@ -172,10 +173,8 @@ function CleanupPanel({
       const data = (await res.json()) as CleanupResult;
       if (!res.ok) throw new Error((data as { error?: string }).error ?? "Cleanup failed");
 
-      setLog((prev) => [
-        { ...data, id: crypto.randomUUID() },
-        ...prev.slice(0, 9), // keep last 10
-      ]);
+      const entry: CleanupEntry = { ...data, id: crypto.randomUUID() };
+      setLog((prev) => [entry, ...prev.slice(0, 9)]);
       onDone();
     } catch (e) {
       setErr(String(e));
@@ -205,39 +204,22 @@ function CleanupPanel({
           onClick={run}
           disabled={running}
           className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:opacity-80 disabled:opacity-50"
-          style={{
-            background: "linear-gradient(135deg,#FFD700,#FF9A3C)",
-            color:      "#0A0A0B",
-          }}
+          style={{ background: "linear-gradient(135deg,#FFD700,#FF9A3C)", color: "#0A0A0B" }}
         >
-          {running ? (
-            <>
-              <span className="animate-spin">⟳</span> Running…
-            </>
-          ) : (
-            "Run Cleanup"
-          )}
+          {running ? <><span className="animate-spin">⟳</span> Running…</> : "Run Cleanup"}
         </button>
       </div>
 
-      {err && (
-        <p className="text-xs" style={{ color: "#ef4444" }}>{err}</p>
-      )}
+      {err && <p className="text-xs" style={{ color: "#ef4444" }}>{err}</p>}
 
-      {/* Session log */}
       {log.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold" style={{ color: "#4A4A58" }}>
-            Session log
-          </p>
+          <p className="text-xs font-semibold" style={{ color: "#4A4A58" }}>Session log</p>
           {log.map((entry) => (
             <div
               key={entry.id}
               className="rounded-xl px-3 py-2 text-xs"
-              style={{
-                background: "rgba(34,197,94,0.06)",
-                border:     "1px solid rgba(34,197,94,0.15)",
-              }}
+              style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.15)" }}
             >
               <div className="flex items-center justify-between">
                 <span style={{ color: "#22c55e" }}>
@@ -266,9 +248,7 @@ function CleanupPanel({
 /* ─── DeleteMediaButton ──────────────────────────────────── */
 
 function DeleteMediaButton({
-  order,
-  secret,
-  onDeleted,
+  order, secret, onDeleted,
 }: {
   order:     Order;
   secret:    string;
@@ -280,19 +260,11 @@ function DeleteMediaButton({
   const hasMedia = Array.isArray(order.media_urls) && order.media_urls.length > 0;
 
   if (!hasMedia && freed === null) {
-    return (
-      <span className="text-xs" style={{ color: "#252530" }}>
-        No media
-      </span>
-    );
+    return <span className="text-xs" style={{ color: "#252530" }}>No media</span>;
   }
 
   if (freed !== null) {
-    return (
-      <span className="text-xs" style={{ color: "#4A4A58" }}>
-        Freed {fmt(freed, 2)} MB
-      </span>
-    );
+    return <span className="text-xs" style={{ color: "#4A4A58" }}>Freed {fmt(freed, 2)} MB</span>;
   }
 
   async function handleDelete() {
@@ -319,11 +291,7 @@ function DeleteMediaButton({
       onClick={handleDelete}
       disabled={deleting}
       className="px-2.5 py-1 rounded-lg text-xs font-bold transition-all hover:opacity-80 disabled:opacity-50"
-      style={{
-        background: "rgba(239,68,68,0.1)",
-        color:      "#f87171",
-        border:     "1px solid rgba(239,68,68,0.2)",
-      }}
+      style={{ background: "rgba(239,68,68,0.1)", color: "#f87171", border: "1px solid rgba(239,68,68,0.2)" }}
     >
       {deleting ? "…" : "Delete Media"}
     </button>
@@ -336,14 +304,9 @@ function StatCard({ label, value, color }: { label: string; value: number; color
   return (
     <div
       className="rounded-2xl p-4 space-y-1"
-      style={{
-        background: "linear-gradient(145deg, #1A1A24, #111116)",
-        border:     `1px solid ${color}22`,
-      }}
+      style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: `1px solid ${color}22` }}
     >
-      <p className="text-xs font-bold uppercase tracking-widest" style={{ color }}>
-        {label}
-      </p>
+      <p className="text-xs font-bold uppercase tracking-widest" style={{ color }}>{label}</p>
       <p className="text-3xl font-black text-white">{value}</p>
     </div>
   );
@@ -353,10 +316,10 @@ function StatCard({ label, value, color }: { label: string; value: number; color
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { bg: string; color: string }> = {
-    paid:      { bg: "rgba(34,197,94,0.12)",   color: "#22c55e"  },
-    pending:   { bg: "rgba(255,184,0,0.12)",   color: "#FFB800"  },
-    failed:    { bg: "rgba(239,68,68,0.12)",   color: "#ef4444"  },
-    abandoned: { bg: "rgba(107,114,128,0.12)", color: "#9ca3af"  },
+    paid:      { bg: "rgba(34,197,94,0.12)",   color: "#22c55e" },
+    pending:   { bg: "rgba(255,184,0,0.12)",   color: "#FFB800" },
+    failed:    { bg: "rgba(239,68,68,0.12)",   color: "#ef4444" },
+    abandoned: { bg: "rgba(107,114,128,0.12)", color: "#9ca3af" },
   };
   const s = map[status] ?? { bg: "rgba(255,255,255,0.06)", color: "#888" };
   return (
@@ -424,16 +387,12 @@ function EditModal({
         </h2>
 
         <div className="space-y-3">
-          {(
-            [
-              { label: "Destination Video URL", value: videoUrl, set: setVideoUrl },
-              { label: "Artistic QR URL",        value: qrUrl,    set: setQrUrl    },
-            ] as { label: string; value: string; set: (v: string) => void }[]
-          ).map(({ label, value, set }) => (
+          {([
+            { label: "Destination Video URL", value: videoUrl, set: setVideoUrl },
+            { label: "Artistic QR URL",        value: qrUrl,    set: setQrUrl    },
+          ] as { label: string; value: string; set: (v: string) => void }[]).map(({ label, value, set }) => (
             <label key={label} className="block space-y-1">
-              <span className="text-xs font-bold" style={{ color: "#FFB800" }}>
-                {label}
-              </span>
+              <span className="text-xs font-bold" style={{ color: "#FFB800" }}>{label}</span>
               <input
                 value={value}
                 onChange={(e) => set(e.target.value)}
@@ -483,19 +442,16 @@ export default function AdminPage() {
   const [filter,  setFilter]  = useState("");
   const [editing, setEditing] = useState<Order | null>(null);
 
-  // Phase 2 state
   const [storage,        setStorage]        = useState<StorageStats | null>(null);
   const [storageLoading, setStorageLoading] = useState(false);
 
-  /* ── Load orders ────────────────────────────────────────── */
+  /* ── Data loaders ───────────────────────────────────────── */
   const load = useCallback(async (pg: number, fil: string, sec: string) => {
     setLoading(true);
     try {
       const qs = new URLSearchParams({ page: String(pg) });
       if (fil) qs.set("status", fil);
-      const res = await fetch(`/api/admin/orders?${qs}`, {
-        headers: { "x-admin-secret": sec },
-      });
+      const res = await fetch(`/api/admin/orders?${qs}`, { headers: { "x-admin-secret": sec } });
       if (res.status === 401) { setAuthed(false); setAuthErr("Invalid secret"); return; }
       setData(await res.json());
     } finally {
@@ -503,13 +459,10 @@ export default function AdminPage() {
     }
   }, []);
 
-  /* ── Load storage stats ─────────────────────────────────── */
   const loadStorage = useCallback(async (sec: string) => {
     setStorageLoading(true);
     try {
-      const res = await fetch("/api/admin/storage", {
-        headers: { "x-admin-secret": sec },
-      });
+      const res = await fetch("/api/admin/storage", { headers: { "x-admin-secret": sec } });
       if (res.ok) setStorage(await res.json());
     } finally {
       setStorageLoading(false);
@@ -532,10 +485,7 @@ export default function AdminPage() {
       >
         <div
           className="w-full max-w-sm rounded-2xl p-8 space-y-6"
-          style={{
-            background: "linear-gradient(145deg, #1A1A24, #111116)",
-            border:     "1px solid rgba(255,184,0,0.12)",
-          }}
+          style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.12)" }}
         >
           <div className="text-center space-y-1">
             <div
@@ -593,9 +543,7 @@ export default function AdminPage() {
           onClose={() => setEditing(null)}
           onSaved={(updated) => {
             setData((prev) =>
-              prev
-                ? { ...prev, orders: prev.orders.map((o) => (o.id === updated.id ? updated : o)) }
-                : prev
+              prev ? { ...prev, orders: prev.orders.map((o) => (o.id === updated.id ? updated : o)) } : prev
             );
             setEditing(null);
           }}
@@ -618,22 +566,22 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* ── Phase 2: Storage + Cleanup side-by-side ── */}
+        {/* Storage + Cleanup */}
         <div className="grid md:grid-cols-2 gap-4">
-          {storageLoading || !storage ? (
+          {/* StorageBar: show skeleton only on first load; stale data stays visible on refresh */}
+          {!storage ? (
             <div
               className="rounded-2xl p-5 flex items-center justify-center h-28"
-              style={{
-                background: "linear-gradient(145deg, #1A1A24, #111116)",
-                border:     "1px solid rgba(255,184,0,0.08)",
-              }}
+              style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.08)" }}
             >
-              <span className="text-xs animate-pulse" style={{ color: "#4A4A58" }}>
-                Loading storage stats…
-              </span>
+              <span className="text-xs animate-pulse" style={{ color: "#4A4A58" }}>Loading storage stats…</span>
             </div>
           ) : (
-            <StorageBar stats={storage} onRefresh={() => loadStorage(secret)} />
+            <StorageBar
+              stats={storage}
+              loading={storageLoading}
+              onRefresh={() => loadStorage(secret)}
+            />
           )}
 
           <CleanupPanel
@@ -645,18 +593,18 @@ export default function AdminPage() {
           />
         </div>
 
-        {/* ── Order stats ── */}
+        {/* Stats */}
         {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-            <StatCard label="Total"     value={stats.total}                    color="#FFB800" />
-            <StatCard label="Paid"      value={stats.paid}                     color="#22c55e" />
-            <StatCard label="Pending"   value={stats.pending}                  color="#FFB800" />
-            <StatCard label="Abandoned" value={storage?.totalAbandoned ?? 0}   color="#9ca3af" />
-            <StatCard label="NFC VIP"   value={stats.nfc}                      color="#a855f7" />
+            <StatCard label="Total"     value={stats.total}                  color="#FFB800" />
+            <StatCard label="Paid"      value={stats.paid}                   color="#22c55e" />
+            <StatCard label="Pending"   value={stats.pending}                color="#FFB800" />
+            <StatCard label="Abandoned" value={storage?.totalAbandoned ?? 0} color="#9ca3af" />
+            <StatCard label="NFC VIP"   value={stats.nfc}                    color="#a855f7" />
           </div>
         )}
 
-        {/* ── Filters ── */}
+        {/* Filters */}
         <div className="flex flex-wrap gap-2">
           {["", "paid", "pending", "abandoned", "failed"].map((s) => (
             <button
@@ -681,100 +629,63 @@ export default function AdminPage() {
           </button>
         </div>
 
-        {/* ── Orders table ── */}
+        {/* Orders table */}
         <div className="rounded-2xl overflow-x-auto" style={{ border: "1px solid rgba(255,184,0,0.1)" }}>
           <table className="w-full text-sm min-w-[900px]">
             <thead>
               <tr style={{ background: "#1A1A24" }}>
-                {["Order", "Customer", "Product", "Tier", "Status", "Video", "Media", "Created", "Actions"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest"
-                      style={{ color: "#4A4A58" }}
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
+                {["Order", "Customer", "Product", "Tier", "Status", "Video", "Media", "Created", "Actions"].map((h) => (
+                  <th
+                    key={h}
+                    className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest"
+                    style={{ color: "#4A4A58" }}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {orders.map((order, i) => (
                 <tr
                   key={order.id}
-                  style={{
-                    background:  i % 2 === 0 ? "#111116" : "#0E0E14",
-                    borderTop:   "1px solid rgba(255,184,0,0.05)",
-                  }}
+                  style={{ background: i % 2 === 0 ? "#111116" : "#0E0E14", borderTop: "1px solid rgba(255,184,0,0.05)" }}
                 >
-                  {/* Order slug */}
                   <td className="px-4 py-3 font-mono font-bold text-xs text-white">
                     {order.secure_slug.toUpperCase()}
                   </td>
-
-                  {/* Customer */}
                   <td className="px-4 py-3">
                     <div className="text-white text-xs font-semibold">{order.customer_name}</div>
                     <div className="text-xs" style={{ color: "#4A4A58" }}>{order.customer_phone}</div>
                   </td>
-
-                  {/* Product */}
                   <td className="px-4 py-3 text-xs" style={{ color: "#D0D0D8" }}>
                     {order.product_type}
-                    {order.product_size && (
-                      <span style={{ color: "#4A4A58" }}> · {order.product_size}</span>
-                    )}
+                    {order.product_size && <span style={{ color: "#4A4A58" }}> · {order.product_size}</span>}
                   </td>
-
-                  {/* Tier */}
                   <td className="px-4 py-3">
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: order.tier === "NFC VIP" ? "#a855f7" : "#FFB800" }}
-                    >
+                    <span className="text-xs font-bold" style={{ color: order.tier === "NFC VIP" ? "#a855f7" : "#FFB800" }}>
                       {order.tier}
                     </span>
                   </td>
-
-                  {/* Status */}
                   <td className="px-4 py-3">
                     <StatusBadge status={order.payment_status} />
                   </td>
-
-                  {/* Video link */}
                   <td className="px-4 py-3 text-xs">
                     {order.destination_video_url ? (
-                      <a
-                        href={order.destination_video_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="underline"
-                        style={{ color: "#FFB800" }}
-                      >
-                        View
-                      </a>
+                      <a href={order.destination_video_url} target="_blank" rel="noopener noreferrer" className="underline" style={{ color: "#FFB800" }}>View</a>
                     ) : (
                       <span style={{ color: "#252530" }}>—</span>
                     )}
                   </td>
-
-                  {/* Delete Raw Media — only for paid orders with media */}
                   <td className="px-4 py-3">
                     {order.payment_status === "paid" ? (
                       <DeleteMediaButton
                         order={order}
                         secret={secret}
                         onDeleted={(orderId, freedMB) => {
-                          // Optimistically clear media_urls in state
                           setData((prev) =>
                             prev
-                              ? {
-                                  ...prev,
-                                  orders: prev.orders.map((o) =>
-                                    o.id === orderId ? { ...o, media_urls: [] } : o
-                                  ),
-                                }
+                              ? { ...prev, orders: prev.orders.map((o) => o.id === orderId ? { ...o, media_urls: [] } : o) }
                               : prev
                           );
                           console.log(`Media deleted for ${orderId}, freed ${freedMB.toFixed(2)} MB`);
@@ -785,36 +696,23 @@ export default function AdminPage() {
                       <span className="text-xs" style={{ color: "#252530" }}>—</span>
                     )}
                   </td>
-
-                  {/* Created */}
                   <td className="px-4 py-3 text-xs" style={{ color: "#4A4A58" }}>
                     {new Date(order.created_at).toLocaleDateString("en-IN")}
                   </td>
-
-                  {/* Edit */}
                   <td className="px-4 py-3">
                     <button
                       onClick={() => setEditing(order)}
                       className="px-3 py-1 rounded-lg text-xs font-bold transition-all hover:opacity-80"
-                      style={{
-                        background: "rgba(255,184,0,0.1)",
-                        color:      "#FFB800",
-                        border:     "1px solid rgba(255,184,0,0.2)",
-                      }}
+                      style={{ background: "rgba(255,184,0,0.1)", color: "#FFB800", border: "1px solid rgba(255,184,0,0.2)" }}
                     >
                       Edit
                     </button>
                   </td>
                 </tr>
               ))}
-
               {orders.length === 0 && !loading && (
                 <tr>
-                  <td
-                    colSpan={9}
-                    className="px-4 py-10 text-center text-sm"
-                    style={{ color: "#252530" }}
-                  >
+                  <td colSpan={9} className="px-4 py-10 text-center text-sm" style={{ color: "#252530" }}>
                     No orders found.
                   </td>
                 </tr>
@@ -823,7 +721,7 @@ export default function AdminPage() {
           </table>
         </div>
 
-        {/* ── Pagination ── */}
+        {/* Pagination */}
         {pages > 1 && (
           <div className="flex items-center justify-center gap-2">
             <button
@@ -831,20 +729,14 @@ export default function AdminPage() {
               onClick={() => setPage((p) => p - 1)}
               className="px-4 py-1.5 rounded-full text-xs font-bold disabled:opacity-30"
               style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}
-            >
-              ← Prev
-            </button>
-            <span className="text-xs" style={{ color: "#4A4A58" }}>
-              Page {page} of {pages}
-            </span>
+            >← Prev</button>
+            <span className="text-xs" style={{ color: "#4A4A58" }}>Page {page} of {pages}</span>
             <button
               disabled={page === pages}
               onClick={() => setPage((p) => p + 1)}
               className="px-4 py-1.5 rounded-full text-xs font-bold disabled:opacity-30"
               style={{ border: "1px solid rgba(255,184,0,0.15)", color: "#4A4A58" }}
-            >
-              Next →
-            </button>
+            >Next →</button>
           </div>
         )}
       </div>

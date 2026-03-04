@@ -14,6 +14,8 @@ export const MAX_FILE_BYTES = 50 * 1024 * 1024;
 export const QUOTA_MAX_BYTES = 1024 * 1024 * 1024;
 /** Warn admin when total usage exceeds 900 MB */
 export const QUOTA_WARN_BYTES = 900 * 1024 * 1024;
+/** Orders abandoned/pending longer than this are eligible for cleanup (48 h) */
+export const CLEANUP_CUTOFF_MS = 48 * 60 * 60 * 1000;
 
 // ─── Allowed MIME types ───────────────────────────────────────────────────────
 /** Server-side magic-bytes allowlist for selfie uploads */
@@ -42,12 +44,19 @@ export type FileSlot = "selfie" | "clip1" | "clip2" | "clip3";
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 /**
+ * Returns the Supabase Storage folder path for an order.
+ * Centralises the path scheme so it never diverges between upload and cleanup.
+ */
+export function getOrderFolder(secureSlug: string): string {
+  return `orders/${secureSlug}`;
+}
+
+/**
  * Returns true when a filename contains a double extension attack pattern
  * e.g. "malware.php.jpg" → true   "photo.jpg" → false
  */
 export function hasDoubleExtension(filename: string): boolean {
   const parts = filename.toLowerCase().trim().split(".");
-  // Need at least 3 segments: basename + hidden-ext + outer-ext
   if (parts.length < 3) return false;
   const hiddenExt = "." + parts[parts.length - 2];
   return BLOCKED_EXT.has(hiddenExt);
@@ -90,13 +99,12 @@ export function clientMimeCheck(file: File, slot: FileSlot): string | null {
     if (!CLIP_EXT.has(ext)) return "Clips must be MP4 or MOV";
   }
 
-  return null; // ✓ passes client check
+  return null;
 }
 
 /**
  * Generate a cryptographically-random 8-char hex slug (4 random bytes).
  * Safe to call in both browser and Node.js (Web Crypto API).
- * Equivalent to: crypto.randomBytes(4).toString('hex')
  */
 export function generateSecureSlug(): string {
   const bytes = new Uint8Array(4);
