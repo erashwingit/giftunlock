@@ -935,7 +935,7 @@ export default function OrderPage() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
+      if (!res.ok) throw new Error(data.detail ? `${data.error}: ${data.detail}` : (data.error ?? "Checkout failed"));
 
       if (data.bypass) {
         setLoading(null);

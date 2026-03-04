@@ -26,11 +26,17 @@ export interface Order {
   customer_name: string;
   customer_phone: string;
   shipping_address: string;
-  product_type: "T-Shirt" | "Beer Mug" | "Hoodie" | "Cushion";
+  product_type: string;
   product_size: string | null;
   tier: "QR Classic" | "NFC VIP";
   occasion: string | null;
   media_urls: string[] | null;
+  personal_message: string | null;
+  group_memory: boolean;
+  group_link: string | null;
+  promo_code: string | null;
+  discount_amount: number | null;
+  final_total: number | null;
   secure_slug: string;
   payment_status: string;
   razorpay_order_id: string | null;

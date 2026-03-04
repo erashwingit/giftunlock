@@ -143,8 +143,11 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (dbError) {
-      console.error("DB insert error:", dbError);
-      return NextResponse.json({ error: "Failed to save order" }, { status: 500 });
+      console.error("DB insert error:", JSON.stringify(dbError));
+      return NextResponse.json(
+        { error: "Failed to save order", detail: dbError.message, code: dbError.code },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
