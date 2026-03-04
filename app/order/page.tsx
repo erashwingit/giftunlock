@@ -56,9 +56,10 @@ const PRODUCT_EMOJIS: Record<string, string> = {
   "T-Shirt": "👕", "Beer Mug": "🍺", Cushion: "🛋️",
   "Coffee Mug": "☕", "Water Bottle": "💧", "Face Mask": "😷",
 };
-const MAX_FILE_MB = 50;
-const MAX_IMAGES  = 1;
-const MAX_VIDEOS  = 3;
+const MAX_VIDEO_MB  = 50;
+const MAX_SELFIE_MB = 10;
+const MAX_IMAGES    = 1;
+const MAX_VIDEOS    = 2;
 
 const isPhoto = (f: File) => f.type.startsWith("image/");
 const isVideo = (f: File) => f.type.startsWith("video/");
@@ -241,10 +242,15 @@ function Step3Media({ form, setFiles, setBool, setStr }:
     const toAdd: File[] = [];
     const bad: string[] = [];
     for (const f of Array.from(incoming)) {
-      if (f.size > MAX_FILE_MB * 1024 * 1024) { bad.push(`"${f.name}" exceeds ${MAX_FILE_MB} MB`); continue; }
-      if (isPhoto(f))      { if (imgs >= MAX_IMAGES) { bad.push(`"${f.name}" — only ${MAX_IMAGES} photo allowed`); continue; } imgs++; }
-      else if (isVideo(f)) { if (vids >= MAX_VIDEOS) { bad.push(`"${f.name}" — only ${MAX_VIDEOS} clips allowed`); continue; } vids++; }
-      else { bad.push(`"${f.name}" — unsupported format`); continue; }
+      if (isPhoto(f)) {
+        if (imgs >= MAX_IMAGES) { bad.push(`"${f.name}" — only ${MAX_IMAGES} photo allowed`); continue; }
+        if (f.size > MAX_SELFIE_MB * 1024 * 1024) { bad.push(`"${f.name}" — selfie must be under ${MAX_SELFIE_MB} MB (phone photos are usually 2–5 MB)`); continue; }
+        imgs++;
+      } else if (isVideo(f)) {
+        if (vids >= MAX_VIDEOS) { bad.push(`"${f.name}" — only ${MAX_VIDEOS} clips allowed`); continue; }
+        if (f.size > MAX_VIDEO_MB * 1024 * 1024) { bad.push(`"${f.name}" exceeds ${MAX_VIDEO_MB} MB`); continue; }
+        vids++;
+      } else { bad.push(`"${f.name}" — unsupported format`); continue; }
       toAdd.push(f);
     }
     if (bad.length) setRejection(bad.join(" · "));
@@ -255,7 +261,7 @@ function Step3Media({ form, setFiles, setBool, setStr }:
   const photoCount = form.mediaFiles.filter(isPhoto).length;
   const videoCount = form.mediaFiles.filter(isVideo).length;
   const fileMb = (f: File) => f.size / (1024 * 1024);
-  const fileOk = (f: File) => fileMb(f) <= MAX_FILE_MB * 0.9;
+  const fileOk = (f: File) => isPhoto(f) ? fileMb(f) <= MAX_SELFIE_MB : fileMb(f) <= MAX_VIDEO_MB;
 
   return (
     <div className="space-y-5">
@@ -267,8 +273,9 @@ function Step3Media({ form, setFiles, setBool, setStr }:
         style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.3)" }}>
         <span className="text-lg shrink-0">📁</span>
         <p className="text-xs leading-relaxed" style={{ color: "#FFB800" }}>
-          ⭐ <strong>Strongly recommended: 1 clear selfie or photo</strong><br />
-          Up to <strong>3 video clips</strong> · Max <strong>50 MB per file</strong> · <strong>10–25 seconds</strong> per video recommended
+          📸 <strong>1 selfie (max 10 MB)</strong> — recommended<br />
+          🎥 <strong>1 main video clip</strong> (max 50 MB, 10–25s) — the heart of the memory<br />
+          🎥 <strong>1 bonus clip</strong> (max 50 MB) — optional extra moment
         </p>
       </div>
       <button onClick={() => inputRef.current?.click()}
@@ -283,7 +290,7 @@ function Step3Media({ form, setFiles, setBool, setStr }:
         </div>
         <div className="text-center">
           <p className="font-semibold text-white text-sm">Click to upload or drag &amp; drop</p>
-          <p className="text-xs mt-0.5" style={{ color: "#4A4A58" }}>JPG, PNG, MP4, MOV · Max 50 MB each</p>
+          <p className="text-xs mt-0.5" style={{ color: "#4A4A58" }}>Selfie: max 10 MB · Videos: max 50 MB each · JPG, PNG, MP4, MOV</p>
         </div>
       </button>
       <div className="flex items-center justify-between text-xs">
@@ -319,7 +326,7 @@ function Step3Media({ form, setFiles, setBool, setStr }:
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white truncate">{file.name}</p>
                   <p className="text-xs font-semibold" style={{ color: ok ? "#22c55e" : "#FF9A3C" }}>
-                    {ok ? "✅" : "⚠️"} {mb.toFixed(1)} MB — {ok ? "looks good!" : "too large, compress first"}
+                    {ok ? "✅" : "⚠️"} {mb.toFixed(1)} MB — {ok ? "looks good!" : isPhoto(file) ? "too large — selfie must be under 10 MB" : "too large, compress first"}
                   </p>
                 </div>
                 <button onClick={() => remove(i)} className="text-gray-500 hover:text-white transition-colors"><X size={16} /></button>

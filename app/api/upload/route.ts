@@ -9,6 +9,10 @@ import { createAdminClient } from "@/lib/supabase";
  * Returns: { urls: string[] }
  */
 
+const MAX_SELFIE_BYTES = 10 * 1024 * 1024;  // 10 MB
+const MAX_VIDEO_BYTES  = 50 * 1024 * 1024;  // 50 MB
+const MAX_VIDEOS       = 2;
+
 // Allow up to 60s for large video uploads on Vercel
 export const maxDuration = 60;
 
@@ -21,15 +25,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No files provided" }, { status: 400 });
     }
 
+    /* ── Pre-flight validation ───────────────────────── */
+    const videos = files.filter(f => f.type.startsWith("video/"));
+    if (videos.length > MAX_VIDEOS) {
+      return NextResponse.json(
+        { error: `Maximum ${MAX_VIDEOS} video clips allowed` },
+        { status: 400 }
+      );
+    }
+
     const supabase = createAdminClient();
     const urls: string[] = [];
 
     for (const file of files) {
-      /* ── Size guard ─────────────────────────────────── */
-      if (file.size > 100 * 1024 * 1024) {
+      const isPhoto = file.type.startsWith("image/");
+      const isVideo = file.type.startsWith("video/");
+
+      /* ── Per-type size guard ─────────────────────────── */
+      if (isPhoto && file.size > MAX_SELFIE_BYTES) {
         return NextResponse.json(
-          { error: `${file.name} exceeds the 100 MB limit` },
+          { error: `Selfie "${file.name}" must be under 10 MB (phone photos are usually 2–5 MB)` },
           { status: 413 }
+        );
+      }
+      if (isVideo && file.size > MAX_VIDEO_BYTES) {
+        return NextResponse.json(
+          { error: `Video "${file.name}" exceeds the 50 MB limit` },
+          { status: 413 }
+        );
+      }
+      if (!isPhoto && !isVideo) {
+        return NextResponse.json(
+          { error: `"${file.name}" is not a supported file type` },
+          { status: 400 }
         );
       }
 
