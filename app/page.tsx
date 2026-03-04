@@ -108,7 +108,6 @@ function Hero() {
             Turn your photos &amp; videos into a premium gift with a stunning artistic QR
           </p>
         </div>
-        {/* 4×4 QR comparison */}
         <div className="flex items-center justify-center gap-8 sm:gap-16 mb-14">
           <div className="flex flex-col items-center gap-3">
             <span className="text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider"
@@ -149,13 +148,25 @@ function Hero() {
   );
 }
 
-/* ─── SPLIT-SCREEN DEMO  (Fix 1) ─────────────────────────── */
+/* ─── SPLIT-SCREEN DEMO  (Fix 2: YouTube preview modal) ──── */
 function SplitScreenDemo() {
   const [pulse, setPulse] = useState(false);
+  // Fix 2 — modal state for YouTube preview
+  const [modalOpen, setModalOpen] = useState(false);
+
   useEffect(() => {
     const t = setInterval(() => setPulse(p => !p), 2000);
     return () => clearInterval(t);
   }, []);
+
+  // Close modal on Escape key
+  useEffect(() => {
+    if (!modalOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setModalOpen(false); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [modalOpen]);
+
   return (
     <section className="py-24" style={{ background: "rgba(10,10,11,0.99)" }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6">
@@ -166,13 +177,15 @@ function SplitScreenDemo() {
             Every product ships with a 100% scannable AI-crafted festive artistic QR (Haldi/Holi style)
           </p>
         </FadeUp>
+
         <div className="grid md:grid-cols-3 gap-8 items-center">
           {/* LEFT — product mockup */}
           <FadeUp delay={0.1} className="flex flex-col items-center gap-4">
             <div className="relative p-6 rounded-2xl flex flex-col items-center gap-4 w-full max-w-[200px] mx-auto"
               style={{ background: "linear-gradient(145deg,#1a1500,#0d0d14)", border: "2px solid rgba(255,184,0,0.35)", boxShadow: "0 0 40px rgba(255,184,0,0.1)" }}>
               <div className="relative w-28 h-24 flex items-center justify-center">
-                <svg viewBox="0 0 100 88" className="w-full h-full" fill="none" aria-label="GiftUnlock personalized memory T-shirt with Holi artistic QR code">
+                <svg viewBox="0 0 100 88" className="w-full h-full" fill="none"
+                  aria-label="GiftUnlock personalized memory T-shirt with Holi artistic QR code">
                   <path d="M30 12 L10 28 L22 35 L22 80 L78 80 L78 35 L90 28 L70 12 L62 20 C60 25 55 28 50 28 C45 28 40 25 38 20 Z"
                     fill="#1e1e2e" stroke="rgba(255,184,0,0.35)" strokeWidth="1.5" />
                 </svg>
@@ -187,10 +200,10 @@ function SplitScreenDemo() {
             </div>
             <p className="text-sm font-semibold text-center" style={{ color: "#FFB800" }}>Artistic QR on your product 🎨</p>
           </FadeUp>
+
           {/* CENTER — scan arrow */}
           <FadeUp delay={0.2} className="flex flex-col items-center gap-3">
-            <div className="flex flex-col items-center gap-2"
-              style={{ animation: "pulse 2s ease-in-out infinite" }}>
+            <div className="flex flex-col items-center gap-2" style={{ animation: "pulse 2s ease-in-out infinite" }}>
               <div className="w-14 h-14 rounded-full flex items-center justify-center text-2xl"
                 style={{ background: "rgba(255,184,0,0.12)", border: "2px solid rgba(255,184,0,0.3)", boxShadow: "0 0 20px rgba(255,184,0,0.15)" }}>📲</div>
               <p className="text-sm font-black text-white">One Scan →</p>
@@ -201,7 +214,8 @@ function SplitScreenDemo() {
               </div>
             </div>
           </FadeUp>
-          {/* RIGHT — phone mockup */}
+
+          {/* RIGHT — phone mockup + Fix 2 preview button */}
           <FadeUp delay={0.3} className="flex flex-col items-center gap-4">
             <div className="relative mx-auto" style={{ width: 120, height: 220 }}>
               <div className="absolute inset-0 rounded-3xl overflow-hidden"
@@ -228,9 +242,20 @@ function SplitScreenDemo() {
                 </div>
               </div>
             </div>
-            <p className="text-sm font-semibold text-center" style={{ color: "#9B9BAA" }}>They scan → memory plays instantly ▶</p>
+
+            {/* Fix 2 — label + preview button */}
+            <p className="text-sm font-semibold text-center" style={{ color: "#9B9BAA" }}>
+              Real memory. Real reaction. Scan yourself 👆
+            </p>
+            <button
+              onClick={() => setModalOpen(true)}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-105"
+              style={{ background: "rgba(255,0,0,0.12)", border: "1px solid rgba(255,0,0,0.3)", color: "#ff6b6b" }}>
+              ▶ Preview a real memory
+            </button>
           </FadeUp>
         </div>
+
         <FadeUp delay={0.4} className="text-center mt-12">
           <Link href="/order" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
             style={{ background: "linear-gradient(135deg,#FFD700,#FFB800,#FF9A3C)", color: "#0A0A0B", boxShadow: "0 0 32px rgba(255,184,0,0.3)" }}>
@@ -238,16 +263,56 @@ function SplitScreenDemo() {
           </Link>
         </FadeUp>
       </div>
+
+      {/* Fix 2 — YouTube lightbox modal */}
+      {modalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.88)", backdropFilter: "blur(8px)" }}
+          onClick={() => setModalOpen(false)}>
+          <div className="relative w-full max-w-[280px]" onClick={e => e.stopPropagation()}>
+            {/* Close button */}
+            <button
+              onClick={() => setModalOpen(false)}
+              className="absolute -top-10 right-0 text-white text-2xl font-black transition-opacity hover:opacity-70"
+              aria-label="Close preview">✕</button>
+
+            {/* Phone-frame wrapper for embed */}
+            <div className="relative rounded-3xl overflow-hidden"
+              style={{ border: "3px solid rgba(255,184,0,0.45)", boxShadow: "0 0 60px rgba(255,184,0,0.25)", background: "#0d0d14" }}>
+              {/* Notch */}
+              <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-2 rounded-full z-10" style={{ background: "#252530" }} />
+              {/*
+                TODO: Replace DEMO_VIDEO_ID with the real GiftUnlock demo YouTube unlisted video ID.
+                Example: src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ&controls=0&rel=0"
+              */}
+              <iframe
+                src="https://www.youtube.com/embed/DEMO_VIDEO_ID?autoplay=1&mute=1&loop=1&playlist=DEMO_VIDEO_ID&controls=0&rel=0"
+                style={{ borderRadius: 20, width: "100%", aspectRatio: "9/16", display: "block", marginTop: 4 }}
+                allow="autoplay; encrypted-media"
+                allowFullScreen
+                title="GiftUnlock — real memory demo video"
+              />
+            </div>
+            <p className="text-center text-sm mt-4 font-semibold" style={{ color: "#9B9BAA" }}>
+              Real memory. Real reaction. ❤️
+            </p>
+            <p className="text-center text-xs mt-1" style={{ color: "#555566" }}>
+              Tap outside or press Esc to close
+            </p>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
 
-/* ─── QR TRUST STRIP  (Fix 3) ────────────────────────────── */
+/* ─── QR TRUST STRIP ─────────────────────────────────────── */
 function QrTrustStrip() {
   const steps = [
-    { icon: "🔲", num: "Step 1", title: "Standard QR generated", desc: "A perfect scannable QR pointing to your private memory video." },
-    { icon: "🎨", num: "Step 2", title: "AI stylizes in Haldi/Holi art", desc: "AI transforms it into vivid festive artwork — marigolds, colour splashes, your occasion." },
-    { icon: "✅", num: "Step 3", title: "100% scan-tested on paper", desc: "We physically print & scan-test every QR before your order ships." },
+    { icon: "🔲", num: "Step 1", title: "Standard QR generated",          desc: "A perfect scannable QR pointing to your private memory video." },
+    { icon: "🎨", num: "Step 2", title: "AI stylizes in Haldi/Holi art",   desc: "AI transforms it into vivid festive artwork — marigolds, colour splashes, your occasion." },
+    { icon: "✅", num: "Step 3", title: "100% scan-tested on paper",       desc: "We physically print & scan-test every QR before your order ships." },
   ];
   return (
     <section className="py-12" style={{ background: "linear-gradient(135deg,#180e00,#261500,#1a1000)" }}>
@@ -275,9 +340,9 @@ function QrTrustStrip() {
 /* ─── QR SHOWCASE ─────────────────────────────────────────── */
 function QrShowcase() {
   const themes = [
-    { label: "Haldi 🌼", bg: "linear-gradient(145deg,#1a1500,#0d0c00)", border: "rgba(255,210,0,0.4)", glow: "rgba(255,210,0,0.15)", cellColor: "#FFD700", glowColor: "rgba(255,215,0,0.75)", tagBg: "rgba(255,210,0,0.1)", tagColor: "#FFD700" },
-    { label: "Anniversary ❤️", bg: "linear-gradient(145deg,#1a0008,#0d000a)", border: "rgba(255,55,75,0.4)", glow: "rgba(255,55,75,0.15)", cellColor: "#FF3355", glowColor: "rgba(255,55,75,0.75)", tagBg: "rgba(255,55,75,0.1)", tagColor: "#FF3355" },
-    { label: "Birthday 🎂", bg: "linear-gradient(145deg,#0e0018,#07000d)", border: "rgba(178,80,255,0.4)", glow: "rgba(178,80,255,0.15)", cellColor: "#B250FF", glowColor: "rgba(178,80,255,0.75)", tagBg: "rgba(178,80,255,0.1)", tagColor: "#B250FF" },
+    { label: "Haldi 🌼",       bg: "linear-gradient(145deg,#1a1500,#0d0c00)", border: "rgba(255,210,0,0.4)",  glow: "rgba(255,210,0,0.15)",  cellColor: "#FFD700", glowColor: "rgba(255,215,0,0.75)",  tagBg: "rgba(255,210,0,0.1)",  tagColor: "#FFD700" },
+    { label: "Anniversary ❤️", bg: "linear-gradient(145deg,#1a0008,#0d000a)", border: "rgba(255,55,75,0.4)",  glow: "rgba(255,55,75,0.15)",  cellColor: "#FF3355", glowColor: "rgba(255,55,75,0.75)",  tagBg: "rgba(255,55,75,0.1)",  tagColor: "#FF3355" },
+    { label: "Birthday 🎂",    bg: "linear-gradient(145deg,#0e0018,#07000d)", border: "rgba(178,80,255,0.4)", glow: "rgba(178,80,255,0.15)", cellColor: "#B250FF", glowColor: "rgba(178,80,255,0.75)", tagBg: "rgba(178,80,255,0.1)", tagColor: "#B250FF" },
   ];
   return (
     <section id="qr-showcase" className="py-24" style={{ background: "rgba(10,10,11,0.98)" }}>
@@ -310,10 +375,10 @@ function QrShowcase() {
 /* ─── HOW IT WORKS ────────────────────────────────────────── */
 function HowItWorks() {
   const steps = [
-    { num: "01", emoji: "📸", title: "Upload Memories", desc: "Share your photos and video clips — birthdays, weddings, trips, anything that matters.", color: "#FFB800" },
-    { num: "02", emoji: "🎨", title: "We Craft Your QR", desc: "Our team creates a cinematic memory video and generates your stunning artistic QR code.", color: "#FF9A3C" },
-    { num: "03", emoji: "📦", title: "Print & Ship in 48hr", desc: "Your QR is printed on your chosen premium gift and shipped across India within 48 hours.", color: "#FF6B35" },
-    { num: "04", emoji: "📱", title: "Scan & Unlock", desc: "One scan. The memory plays instantly. Tears guaranteed — the happy kind. ❤️", color: "#FFD700" },
+    { num: "01", emoji: "📸", title: "Upload Memories",    desc: "Share your photos and video clips — birthdays, weddings, trips, anything that matters.", color: "#FFB800" },
+    { num: "02", emoji: "🎨", title: "We Craft Your QR",   desc: "Our team creates a cinematic memory video and generates your stunning artistic QR code.", color: "#FF9A3C" },
+    { num: "03", emoji: "📦", title: "Print & Ship in 48hr",desc: "Your QR is printed on your chosen premium gift and shipped across India within 48 hours.", color: "#FF6B35" },
+    { num: "04", emoji: "📱", title: "Scan & Unlock",      desc: "One scan. The memory plays instantly. Tears guaranteed — the happy kind. ❤️",            color: "#FFD700" },
   ];
   return (
     <section id="how-it-works" className="py-24" style={{ background: "#0A0A0B" }}>
@@ -344,13 +409,13 @@ function HowItWorks() {
   );
 }
 
-/* ─── GROUP MEMORY  (Fix 2 — FOMO redesign) ──────────────── */
+/* ─── GROUP MEMORY ───────────────────────────────────────── */
 function GroupMemory() {
   const squadSteps = [
-    { num: "1", emoji: "📱", title: "You start the order", desc: "Pick your product, occasion and delivery tier." },
-    { num: "2", emoji: "🔗", title: "Get your shareable link", desc: "Share giftunlock.in/squad/abc123 with anyone, no app needed." },
-    { num: "3", emoji: "🎬", title: "Friends upload clips", desc: "Everyone adds their best moments from their phones." },
-    { num: "4", emoji: "✅", title: "You approve → ships in 48hr", desc: "One cinematic video, one QR gift, one reaction they'll never forget." },
+    { num: "1", emoji: "📱", title: "You start the order",        desc: "Pick your product, occasion and delivery tier." },
+    { num: "2", emoji: "🔗", title: "Get your shareable link",    desc: "Share giftunlock.in/squad/abc123 with anyone, no app needed." },
+    { num: "3", emoji: "🎬", title: "Friends upload clips",       desc: "Everyone adds their best moments from their phones." },
+    { num: "4", emoji: "✅", title: "You approve → ships in 48hr",desc: "One cinematic video, one QR gift, one reaction they'll never forget." },
   ];
   const squad = ["Priya ✅", "Rohan ✅", "Anjali ✅", "Rahul ⏳", "Meera ⏳"];
   return (
@@ -363,7 +428,6 @@ function GroupMemory() {
             Collect clips from all your friends — one video, one gift, one reaction they&apos;ll never forget.
           </p>
         </FadeUp>
-        {/* 4-step flow */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {squadSteps.map(({ num, emoji, title, desc }, i) => (
             <FadeUp key={num} delay={i * 0.1}>
@@ -379,7 +443,6 @@ function GroupMemory() {
             </FadeUp>
           ))}
         </div>
-        {/* Link progress mockup */}
         <FadeUp delay={0.3}>
           <div className="max-w-sm mx-auto p-5 rounded-2xl mb-8"
             style={{ background: "linear-gradient(145deg,#1a1500,#111116)", border: "1px solid rgba(255,184,0,0.25)" }}>
@@ -424,12 +487,12 @@ function GroupMemory() {
 /* ─── PRODUCTS ─────────────────────────────────────────────── */
 function Products() {
   const products = [
-    { emoji: "👕", name: "T-Shirt",      price: "₹899",   tag: "Best Seller", alt: "GiftUnlock personalized memory T-shirt with Holi artistic QR code" },
-    { emoji: "🍺", name: "Beer Mug",     price: "₹799",   tag: null,          alt: "GiftUnlock personalized memory beer mug with Haldi artistic QR code" },
-    { emoji: "🧥", name: "Hoodie",       price: "₹1,299", tag: "Premium",     alt: "GiftUnlock personalized memory hoodie with festive artistic QR code" },
-    { emoji: "🛋️", name: "Cushion",      price: "₹699",   tag: null,          alt: "GiftUnlock personalized memory cushion with artistic QR code" },
-    { emoji: "☕", name: "Coffee Mug",   price: "₹699",   tag: null,          alt: "GiftUnlock personalized memory coffee mug with artistic QR code" },
-    { emoji: "💧", name: "Water Bottle", price: "₹899",   tag: null,          alt: "GiftUnlock personalized memory water bottle with artistic QR code" },
+    { emoji: "👕", name: "T-Shirt",       price: "₹899",   tag: "Best Seller", alt: "GiftUnlock personalized memory T-shirt with Holi artistic QR code" },
+    { emoji: "🍺", name: "Beer Mug",      price: "₹799",   tag: null,          alt: "GiftUnlock personalized memory beer mug with Haldi artistic QR code" },
+    { emoji: "🧥", name: "Hoodie",        price: "₹1,299", tag: "Premium",     alt: "GiftUnlock personalized memory hoodie with festive artistic QR code" },
+    { emoji: "🛋️", name: "Cushion",       price: "₹699",   tag: null,          alt: "GiftUnlock personalized memory cushion with artistic QR code" },
+    { emoji: "☕", name: "Coffee Mug",    price: "₹699",   tag: null,          alt: "GiftUnlock personalized memory coffee mug with artistic QR code" },
+    { emoji: "💧", name: "Water Bottle",  price: "₹899",   tag: null,          alt: "GiftUnlock personalized memory water bottle with artistic QR code" },
   ];
   return (
     <section id="products" className="py-24" style={{ background: "rgba(17,17,22,0.4)" }}>
@@ -465,14 +528,13 @@ function Products() {
 /* ─── STATS ───────────────────────────────────────────────── */
 function Stats() {
   const stats = [
-    { value: "500+", label: "Memories Created", emoji: "🎬" },
-    { value: "4.9 ★", label: "Average Rating", emoji: "⭐" },
-    { value: "48hr", label: "Production Time", emoji: "⚡" },
-    { value: "Pan India", label: "Shipping", emoji: "🚚" },
+    { value: "500+",      label: "Memories Created", emoji: "🎬" },
+    { value: "4.9 ★",    label: "Average Rating",   emoji: "⭐" },
+    { value: "48hr",      label: "Production Time",  emoji: "⚡" },
+    { value: "Pan India", label: "Shipping",         emoji: "🚚" },
   ];
   return (
-    <section className="py-14 border-y"
-      style={{ borderColor: "rgba(255,184,0,0.08)", background: "rgba(17,17,22,0.6)" }}>
+    <section className="py-14 border-y" style={{ borderColor: "rgba(255,184,0,0.08)", background: "rgba(17,17,22,0.6)" }}>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
         {stats.map(({ value, label, emoji }, i) => (
           <FadeUp key={label} delay={i * 0.1} className="flex flex-col items-center text-center gap-2">
@@ -489,9 +551,9 @@ function Stats() {
 /* ─── TESTIMONIALS ───────────────────────────────────────── */
 function Testimonials() {
   const reviews = [
-    { quote: "My dad cried when he scanned the QR on his mug. Best birthday gift I have ever given.", name: "Priya S.", city: "Mumbai", initial: "P" },
-    { quote: "The artistic QR was stunning. Every guest at the party kept asking where I got it from.", name: "Rohan K.", city: "Delhi", initial: "R" },
-    { quote: "All 8 of us uploaded college memories. One QR, one hoodie, one hundred happy tears. 😭", name: "Anjali M.", city: "Bangalore", initial: "A" },
+    { quote: "My dad cried when he scanned the QR on his mug. Best birthday gift I have ever given.", name: "Priya S.",  city: "Mumbai",    initial: "P" },
+    { quote: "The artistic QR was stunning. Every guest at the party kept asking where I got it from.", name: "Rohan K.",  city: "Delhi",     initial: "R" },
+    { quote: "All 8 of us uploaded college memories. One QR, one hoodie, one hundred happy tears. 😭",  name: "Anjali M.", city: "Bangalore", initial: "A" },
   ];
   return (
     <section className="py-24" style={{ background: "#0A0A0B" }}>
@@ -524,7 +586,7 @@ function Testimonials() {
   );
 }
 
-/* ─── TRUST BAR  (Fix 7) ─────────────────────────────────── */
+/* ─── TRUST BAR ───────────────────────────────────────────── */
 function TrustBar() {
   const items = [
     { emoji: "🔒", label: "Razorpay Secured" },
@@ -550,7 +612,7 @@ function TrustBar() {
   );
 }
 
-/* ─── FOOTER  (Fix 6 — updated copy) ─────────────────────── */
+/* ─── FOOTER  (Fix 3: trust line + trust icons) ──────────── */
 function Footer() {
   const navLinks: [string, string][] = [
     ["Home", "/"], ["How It Works", "#how-it-works"], ["Products", "#products"],
@@ -560,6 +622,7 @@ function Footer() {
     <footer className="py-12 border-t" style={{ borderColor: "rgba(255,184,0,0.1)", background: "rgba(10,10,11,0.99)" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <div className="grid md:grid-cols-3 gap-10 mb-10">
+          {/* Brand */}
           <div className="space-y-4">
             <div className="flex items-center gap-2.5">
               <div className="w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm"
@@ -569,7 +632,18 @@ function Footer() {
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: "#9B9BAA" }}>
               Unlock the Memory They Will Never Forget
             </p>
+            {/* Fix 3 — trust icons inside footer */}
+            <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
+              {[["🔒", "Razorpay Secured"], ["🚚", "Pan India Delivery"], ["⏱", "48hr Turnaround"]].map(([e, l]) => (
+                <div key={l} className="flex items-center gap-1.5">
+                  <span className="text-sm">{e}</span>
+                  <span className="text-xs" style={{ color: "#555566" }}>{l}</span>
+                </div>
+              ))}
+            </div>
           </div>
+
+          {/* Links */}
           <div className="space-y-3">
             <p className="text-xs font-semibold text-white uppercase tracking-wider">Quick Links</p>
             <div className="space-y-2">
@@ -578,6 +652,8 @@ function Footer() {
               ))}
             </div>
           </div>
+
+          {/* Made in Delhi */}
           <div className="space-y-3">
             <p className="text-sm font-bold text-white">❤️ Made in Delhi</p>
             <p className="text-sm" style={{ color: "#9B9BAA" }}>✨ AI-crafted festive artistic QR (Haldi/Holi style)</p>
@@ -592,8 +668,15 @@ function Footer() {
             </div>
           </div>
         </div>
-        <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs border-t"
-          style={{ borderColor: "rgba(255,184,0,0.06)", color: "#555566" }}>
+
+        {/* Fix 3 — centered trust line */}
+        <p className="text-center text-xs py-4 border-t border-b" style={{ borderColor: "rgba(255,184,0,0.04)", color: "#3A3A4A" }}>
+          Same-day DTF printing in Delhi/NCR by our trusted partner · Zero recurring cost · Lifetime video hosting · 100% Scannable Guarantee
+        </p>
+
+        {/* Copyright row */}
+        <div className="pt-5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs"
+          style={{ color: "#555566" }}>
           <span>© 2026 GiftUnlock · All rights reserved</span>
           <div className="flex items-center gap-4">
             <a href="https://instagram.com/giftunlock" target="_blank" rel="noopener noreferrer" className="text-lg hover:text-white transition-colors">📸</a>
