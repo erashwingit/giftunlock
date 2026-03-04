@@ -23,6 +23,9 @@ interface FormState {
   occasionDate: string;
   wishText: string;
   personalMessage: string;
+  promoCode: string;
+  discountAmount: number;
+  finalTotal: number;
   customerName: string;
   customerPhone: string;
   addressLine1: string;
@@ -37,6 +40,7 @@ const INITIAL: FormState = {
   mediaFiles: [],
   groupMemory: false, groupLink: "",
   occasion: "", recipientName: "", occasionDate: "", wishText: "", personalMessage: "",
+  promoCode: "", discountAmount: 0, finalTotal: 0,
   customerName: "", customerPhone: "",
   addressLine1: "", city: "", state: "", pincode: "",
 };
@@ -692,13 +696,41 @@ function getQrStyle(occasion: string): string {
 }
 
 /* ─── Step 6: Review & Pay ──────────────────────────────── */
-function Step6Review({ form, onPay, loading, error }:
-  { form: FormState; onPay: () => void; loading: string | null; error: string | null }) {
-  const price = getPrice(form.productType, form.tier);
-  const Row = ({ label, value }: { label: string; value: string }) => (
+function Step6Review({ form, onPay, loading, error, setPromo }:
+  { form: FormState; onPay: () => void; loading: string | null; error: string | null;
+    setPromo: (code: string, discount: number, final: number) => void }) {
+  const subtotal = getPrice(form.productType, form.tier);
+  const effectiveTotal = form.discountAmount > 0 ? form.finalTotal : subtotal;
+  const [promoInput, setPromoInput]   = useState("");
+  const [promoLoading, setPromoLoading] = useState(false);
+  const [promoError, setPromoError]   = useState("");
+
+  const applyPromo = async () => {
+    const code = promoInput.trim().toUpperCase();
+    if (!code) return;
+    setPromoLoading(true); setPromoError("");
+    try {
+      const res = await fetch("/api/apply-promo", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code, orderTotal: subtotal }),
+      });
+      const data = await res.json();
+      if (data.valid) {
+        setPromo(code, data.discountAmount, data.finalTotal);
+        setPromoInput("");
+      } else {
+        setPromoError(data.message ?? "Invalid or expired code");
+      }
+    } catch { setPromoError("Could not validate code. Try again."); }
+    finally   { setPromoLoading(false); }
+  };
+
+  const removePromo = () => { setPromo("", 0, 0); setPromoInput(""); setPromoError(""); };
+
+  const Row = ({ label, value, accent }: { label: string; value: string; accent?: boolean }) => (
     <div className="flex justify-between items-start gap-4 text-sm py-2.5 border-b" style={{ borderColor: "rgba(255,184,0,0.06)" }}>
-      <span style={{ color: "#4A4A58" }}>{label}</span>
-      <span className="text-right font-medium text-white">{value}</span>
+      <span style={{ color: accent ? "#22c55e" : "#4A4A58" }}>{label}</span>
+      <span className="text-right font-medium" style={{ color: accent ? "#22c55e" : "white" }}>{value}</span>
     </div>
   );
   return (
@@ -717,9 +749,59 @@ function Step6Review({ form, onPay, loading, error }:
         <Row label="Media files"  value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}${form.groupMemory ? " + group uploads" : ""}`} />
         <Row label="Shipping to"  value={`${form.customerName}, ${form.city}, ${form.pincode}`} />
         <Row label="Phone"        value={form.customerPhone} />
-        <div className="flex justify-between items-center pt-3 mt-1">
-          <span className="font-semibold text-white">Total</span>
-          <span className="text-2xl font-black" style={{ color: "#FFD700" }}>{formatPrice(price)}</span>
+
+        {/* ── Promo code input ──────────────────────────── */}
+        {!form.promoCode ? (
+          <div className="pt-3 space-y-2">
+            <div className="flex gap-2">
+              <input value={promoInput} onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoError(""); }}
+                onKeyDown={e => e.key === "Enter" && applyPromo()}
+                placeholder="Have a promo code?"
+                maxLength={20}
+                className="flex-1 px-3 py-2 rounded-xl text-sm text-white outline-none transition-all"
+                style={{ background: "rgba(17,17,22,0.8)", border: promoError ? "1px solid rgba(239,68,68,0.5)" : "1px solid rgba(255,184,0,0.15)" }}
+                onFocus={e => (e.target.style.borderColor = "rgba(255,184,0,0.4)")}
+                onBlur={e => (e.target.style.borderColor = promoError ? "rgba(239,68,68,0.5)" : "rgba(255,184,0,0.15)")} />
+              <button onClick={applyPromo} disabled={promoLoading || !promoInput.trim()}
+                className="px-4 py-2 rounded-xl text-sm font-bold transition-all disabled:opacity-50"
+                style={{ background: "#FFB800", color: "#0A0A0B" }}>
+                {promoLoading ? <Loader2 size={14} className="animate-spin" /> : "Apply"}
+              </button>
+            </div>
+            {promoError && (
+              <p className="flex items-center gap-1.5 text-xs" style={{ color: "#f87171" }}>
+                <AlertCircle size={12} /> ❌ {promoError}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="pt-3 flex items-center justify-between text-xs">
+            <span className="flex items-center gap-1.5 font-semibold" style={{ color: "#22c55e" }}>
+              ✅ <strong>{form.promoCode}</strong> applied!
+            </span>
+            <button onClick={removePromo} className="underline transition-colors hover:text-white" style={{ color: "#4A4A58" }}>
+              ✕ Remove
+            </button>
+          </div>
+        )}
+
+        {/* ── Totals ────────────────────────────────────── */}
+        <div className="pt-3 space-y-1">
+          {form.discountAmount > 0 && (
+            <>
+              <div className="flex justify-between text-sm" style={{ color: "#4A4A58" }}>
+                <span>Subtotal</span><span className="text-white">{formatPrice(subtotal)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span style={{ color: "#22c55e" }}>Discount ({form.promoCode})</span>
+                <span style={{ color: "#22c55e" }}>−{formatPrice(form.discountAmount)}</span>
+              </div>
+            </>
+          )}
+          <div className="flex justify-between items-center pt-2 mt-1">
+            <span className="font-semibold text-white">Total</span>
+            <span className="text-2xl font-black" style={{ color: "#FFD700" }}>{formatPrice(effectiveTotal)}</span>
+          </div>
         </div>
       </div>
       <div className="flex flex-wrap justify-center gap-4 text-xs" style={{ color: "#333340" }}>
@@ -802,10 +884,12 @@ export default function OrderPage() {
   const [error,   setError]   = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ShippingErrors>({});
 
-  const set     = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
-  const setBool = (k: keyof FormState, v: boolean) => setFormState(p => ({ ...p, [k]: v }));
-  const setStr  = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
+  const set      = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
+  const setBool  = (k: keyof FormState, v: boolean) => setFormState(p => ({ ...p, [k]: v }));
+  const setStr   = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
   const setFiles = (files: File[]) => setFormState(p => ({ ...p, mediaFiles: files }));
+  const setPromo = (code: string, discount: number, final: number) =>
+    setFormState(p => ({ ...p, promoCode: code, discountAmount: discount, finalTotal: final }));
 
   const validate = (): string | null => {
     switch (step) {
@@ -846,7 +930,8 @@ export default function OrderPage() {
           shippingAddress, productType: form.productType, productSize: form.productSize || null,
           tier: form.tier, occasion: occasionNote || null, mediaUrls,
           personalMessage: form.personalMessage.trim() || null,
-          groupMemory: form.groupMemory, groupLink: form.groupMemory ? form.groupLink : null }),
+          groupMemory: form.groupMemory, groupLink: form.groupMemory ? form.groupLink : null,
+          promoCode: form.promoCode || null }),
       });
 
       const data = await res.json();
@@ -890,7 +975,7 @@ export default function OrderPage() {
       case 3: return <Step3Media           form={form} setFiles={setFiles} setBool={setBool} setStr={setStr} />;
       case 4: return <Step4Personalization form={form} set={set} />;
       case 5: return <Step5Shipping        form={form} set={set} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} />;
-      case 6: return <Step6Review          form={form} onPay={handlePay} loading={loading} error={error} />;
+      case 6: return <Step6Review          form={form} onPay={handlePay} loading={loading} error={error} setPromo={setPromo} />;
     }
   };
 
