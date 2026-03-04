@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseUrl    = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
 /** Public browser-safe client */
@@ -14,7 +14,7 @@ export function createAdminClient() {
     {
       auth: {
         autoRefreshToken: false,
-        persistSession: false,
+        persistSession:   false,
       },
     }
   );
@@ -22,25 +22,38 @@ export function createAdminClient() {
 
 /** Order row type matching the Supabase schema */
 export interface Order {
-  id: string;
-  customer_name: string;
-  customer_phone: string;
-  shipping_address: string;
-  product_type: string;
-  product_size: string | null;
-  tier: "QR Classic" | "NFC VIP";
-  occasion: string | null;
-  media_urls: string[] | null;
-  personal_message: string | null;
-  group_memory: boolean;
-  group_link: string | null;
-  promo_code: string | null;
-  discount_amount: number | null;
-  final_total: number | null;
-  secure_slug: string;
-  payment_status: string;
-  razorpay_order_id: string | null;
+  id:                    string;
+  customer_name:         string;
+  customer_phone:        string;
+  shipping_address:      string;
+  product_type:          string;
+  product_size:          string | null;
+  tier:                  "QR Classic" | "NFC VIP";
+  occasion:              string | null;
+  media_urls:            string[] | null;
+  personal_message:      string | null;
+  group_memory:          boolean;
+  group_link:            string | null;
+  promo_code:            string | null;
+  discount_amount:       number | null;
+  final_total:           number | null;
+  secure_slug:           string;
+  payment_status:        string;
+  order_status:          "pending" | "processing" | "fulfilled" | null;
+  razorpay_order_id:     string | null;
   destination_video_url: string | null;
-  artistic_qr_url: string | null;
+  artistic_qr_url:       string | null;
+  created_at:            string;
+}
+
+/** Promo code row type matching the promo_codes table */
+export interface PromoCode {
+  id:         string;
+  code:       string;
+  type:       "flat" | "percent";
+  value:      number;
+  max_uses:   number | null;
+  used_count: number;
+  active:     boolean;
   created_at: string;
 }
