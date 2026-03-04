@@ -845,7 +845,7 @@ function Step6Review({ form, onPay, loading, error, setPromo }:
       <button onClick={onPay} disabled={!!loading}
         className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition-all hover:scale-[1.01] disabled:opacity-70 disabled:cursor-not-allowed"
         style={{ background: "linear-gradient(135deg,#FFD700 0%,#FFB800 50%,#FF9A3C 100%)", color: "#0A0A0B" }}>
-        {loading ? <><Loader2 size={18} className="animate-spin" />{loading}</> : <><Lock size={16} />Confirm &amp; Pay {formatPrice(price)}</>}
+        {loading ? <><Loader2 size={18} className="animate-spin" />{loading}</> : <><Lock size={16} />Confirm &amp; Pay {formatPrice(effectiveTotal)}</>}
       </button>
     </div>
   );
