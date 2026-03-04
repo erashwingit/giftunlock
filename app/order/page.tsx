@@ -214,6 +214,22 @@ function Step3Media({ form, setFiles, setBool, setStr }:
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [rejection, setRejection] = useState("");
+  const [linkCopied, setLinkCopied] = useState(false);
+
+  const copyLink = async (text: string) => {
+    let success = false;
+    if (window.isSecureContext && navigator.clipboard) {
+      try { await navigator.clipboard.writeText(text); success = true; } catch { /* fall through */ }
+    }
+    if (!success) {
+      const el = document.createElement("textarea");
+      el.value = text; el.style.position = "fixed"; el.style.opacity = "0";
+      document.body.appendChild(el); el.select();
+      success = document.execCommand("copy");
+      document.body.removeChild(el);
+    }
+    if (success) { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }
+  };
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
@@ -336,9 +352,11 @@ function Step3Media({ form, setFiles, setBool, setStr }:
             <div className="flex items-center gap-2 p-2.5 rounded-xl"
               style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.2)" }}>
               <span className="text-xs font-mono flex-1 truncate" style={{ color: "#FFB800" }}>{form.groupLink}</span>
-              <button onClick={() => navigator.clipboard?.writeText(form.groupLink)}
-                className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0"
-                style={{ background: "#FFB800", color: "#0A0A0B" }}>Copy</button>
+              <button onClick={() => copyLink(form.groupLink)}
+                className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0 transition-all"
+                style={{ background: linkCopied ? "#22c55e" : "#FFB800", color: "#0A0A0B" }}>
+                {linkCopied ? "Copied ✓" : "Copy"}
+              </button>
             </div>
             <p className="text-[10px]" style={{ color: "#555566" }}>Share this link after completing your order. Friends can upload directly.</p>
           </div>
