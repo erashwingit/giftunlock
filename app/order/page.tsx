@@ -735,13 +735,22 @@ function Step6Review({ form, onPay, loading, error }:
         </div>
       )}
       {/* QR scannable guarantee */}
-      <div className="flex items-start gap-3 p-4 rounded-xl"
-        style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)" }}>
-        <span className="text-base shrink-0 mt-0.5">✅</span>
-        <p className="text-xs leading-relaxed" style={{ color: "#86efac" }}>
-          Your AI-crafted <strong>{getQrStyle(form.occasion)}</strong> QR is{" "}
-          <strong>manually tested 100% scannable</strong> before printing.{" "}
-          <strong>Free reprint if it ever fails.</strong>
+      <div className="space-y-1.5">
+        <div className="flex items-start gap-3 p-4 rounded-xl"
+          style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)" }}>
+          <span className="text-base shrink-0 mt-0.5">✅</span>
+          <p className="text-xs leading-relaxed" style={{ color: "#86efac" }}>
+            Your AI-crafted <strong>{getQrStyle(form.occasion)}</strong> QR is{" "}
+            <strong>manually tested 100% scannable</strong> before dispatch.{" "}
+            Free reprint if QR is non-functional on arrival.*
+          </p>
+        </div>
+        <p className="text-[10px] px-1" style={{ color: "#4A4A58" }}>
+          *See our{" "}
+          <Link href="/return-policy" target="_blank" className="underline hover:text-white transition-colors">
+            Return Policy
+          </Link>{" "}
+          for full reprint terms.
         </p>
       </div>
       <button onClick={onPay} disabled={!!loading}
