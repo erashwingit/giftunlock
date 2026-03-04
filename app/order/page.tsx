@@ -22,6 +22,7 @@ interface FormState {
   recipientName: string;
   occasionDate: string;
   wishText: string;
+  personalMessage: string;
   customerName: string;
   customerPhone: string;
   addressLine1: string;
@@ -35,7 +36,7 @@ const INITIAL: FormState = {
   tier: "",
   mediaFiles: [],
   groupMemory: false, groupLink: "",
-  occasion: "", recipientName: "", occasionDate: "", wishText: "",
+  occasion: "", recipientName: "", occasionDate: "", wishText: "", personalMessage: "",
   customerName: "", customerPhone: "",
   addressLine1: "", city: "", state: "", pincode: "",
 };
@@ -266,7 +267,8 @@ function Step3Media({ form, setFiles, setBool, setStr }:
         style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.3)" }}>
         <span className="text-lg shrink-0">📁</span>
         <p className="text-xs leading-relaxed" style={{ color: "#FFB800" }}>
-          Upload at least <strong>1 clear selfie or photo</strong> · Up to <strong>3 video clips</strong> · Max <strong>50 MB per file</strong> · <strong>10–25 seconds</strong> per video recommended
+          ⭐ <strong>Strongly recommended: 1 clear selfie or photo</strong><br />
+          Up to <strong>3 video clips</strong> · Max <strong>50 MB per file</strong> · <strong>10–25 seconds</strong> per video recommended
         </p>
       </div>
       <button onClick={() => inputRef.current?.click()}
@@ -287,9 +289,19 @@ function Step3Media({ form, setFiles, setBool, setStr }:
       <div className="flex items-center justify-between text-xs">
         <span style={{ color: "#FFB800" }}>Short vertical clips (10–25 sec) work best 📱</span>
         <span className="flex gap-3">
-          <span style={{ color: photoCount >= MAX_IMAGES ? "#22c55e" : "#FFB800" }}>Photos: {photoCount}/{MAX_IMAGES}</span>
+          <span style={{ color: photoCount >= MAX_IMAGES ? "#22c55e" : "#FFB800" }}>Photos: {photoCount}/{MAX_IMAGES} (recommended)</span>
           <span style={{ color: videoCount >= MAX_VIDEOS ? "#22c55e" : "#FFB800" }}>Videos: {videoCount}/{MAX_VIDEOS}</span>
         </span>
+      </div>
+      {/* Green soft guidance note */}
+      <div className="flex items-start gap-2 p-3 rounded-xl"
+        style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.18)" }}>
+        <span className="text-sm shrink-0">💡</span>
+        <p className="text-xs leading-relaxed" style={{ color: "#86efac" }}>
+          A clear selfie makes the video <strong>extra personal</strong> — they see themselves in the memory.
+          You can still continue with only clips or just a heartfelt note.{" "}
+          We&apos;ll WhatsApp you after payment if we need a photo for the best result ❤️
+        </p>
       </div>
       <input ref={inputRef} type="file" multiple accept="image/*,video/*" className="hidden"
         onChange={e => addFiles(e.target.files)} />
@@ -322,12 +334,32 @@ function Step3Media({ form, setFiles, setBool, setStr }:
           <AlertCircle size={14} className="shrink-0 mt-0.5" /><span>{rejection}</span>
         </div>
       )}
-      {photoCount === 0 && (
-        <div className="flex items-center gap-2 text-xs p-3 rounded-xl"
-          style={{ background: "rgba(255,107,53,0.08)", border: "1px solid rgba(255,107,53,0.2)", color: "#FF9A3C" }}>
-          <AlertCircle size={14} /> At least one selfie photo is required to continue.
+      {/* Soft yellow warning — only when nothing uploaded AND no message */}
+      {form.mediaFiles.length === 0 && !form.personalMessage.trim() && (
+        <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
+          style={{ background: "rgba(255,184,0,0.07)", border: "1px solid rgba(255,184,0,0.2)", color: "#FFB800" }}>
+          <AlertCircle size={14} className="shrink-0 mt-0.5" />
+          No media uploaded yet — the video can still be created with your message alone ❤️
         </div>
       )}
+      {/* Personal message field */}
+      <div>
+        <label className="block text-sm font-semibold text-white mb-1.5">
+          Personal Message / Note for them{" "}
+          <span className="font-normal text-xs" style={{ color: "#4A4A58" }}>(optional — will be spoken in the video)</span>
+        </label>
+        <textarea
+          value={form.personalMessage}
+          onChange={e => setStr("personalMessage", e.target.value)}
+          rows={4} maxLength={400}
+          placeholder="Happy Birthday beta! We are so proud of you…"
+          className="w-full rounded-xl p-4 text-sm text-white resize-none outline-none transition-all"
+          style={{ background: "rgba(17,17,22,0.8)", border: "1px solid rgba(255,184,0,0.15)" }}
+          onFocus={e => (e.target.style.borderColor = "rgba(255,184,0,0.4)")}
+          onBlur={e => (e.target.style.borderColor = "rgba(255,184,0,0.15)")}
+        />
+        <p className="text-xs mt-1 text-right" style={{ color: "#4A4A58" }}>{form.personalMessage.length}/400</p>
+      </div>
       {/* Group Memory toggle */}
       <div className="rounded-2xl p-5 space-y-4" style={{ background: "linear-gradient(145deg,#1a1500,#111116)", border: "1px solid rgba(255,184,0,0.2)" }}>
         <div className="flex items-center justify-between">
@@ -748,7 +780,7 @@ export default function OrderPage() {
         if (PRODUCTS_WITH_SIZE.includes(form.productType) && !form.productSize) return "Please select a size.";
         return null;
       case 2: return form.tier ? null : "Please select a tier.";
-      case 3: return form.mediaFiles.some(isPhoto) ? null : "Please upload at least one selfie photo.";
+      case 3: return null; // uploads are optional — soft guidance only
       case 4: return null;
       case 5: {
         const errors = validateShippingFields(form);
@@ -779,6 +811,7 @@ export default function OrderPage() {
         body: JSON.stringify({ customerName: form.customerName, customerPhone: form.customerPhone,
           shippingAddress, productType: form.productType, productSize: form.productSize || null,
           tier: form.tier, occasion: occasionNote || null, mediaUrls,
+          personalMessage: form.personalMessage.trim() || null,
           groupMemory: form.groupMemory, groupLink: form.groupMemory ? form.groupLink : null }),
       });
 
