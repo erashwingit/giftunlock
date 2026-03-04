@@ -427,7 +427,10 @@ const SHIP_VALIDATORS: Record<string, (v: string) => string> = {
     return "";
   },
   customerPhone: (v) => {
-    if (!/^[6-9][0-9]{9}$/.test(v.trim()))
+    // Normalize: strip optional +91 prefix, spaces, and dashes so users
+    // can type "+91 98765 43210" or "9876543210" — both accepted
+    const normalized = v.replace(/^\+?91[\s\-]?/, "").replace(/[\s\-]/g, "");
+    if (!/^[6-9][0-9]{9}$/.test(normalized))
       return "Enter a valid 10-digit Indian mobile number";
     return "";
   },
@@ -467,6 +470,63 @@ export function validateShippingFields(form: FormState): ShippingErrors {
   return errors;
 }
 
+/* ─── Stable ShippingField component (defined at module level) ──
+   IMPORTANT: must NOT be defined inside Step5Shipping — doing so
+   creates a new component type on every render, causing React to
+   unmount/remount the input on every keystroke (focus loss bug).   */
+interface ShippingFieldProps {
+  label: string;
+  value: string;
+  placeholder: string;
+  type?: string;
+  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  maxLength?: number;
+  icon: React.ElementType;
+  error?: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+}
+
+function ShippingField({
+  label, value, placeholder, type = "text", inputMode, maxLength,
+  icon: Icon, error, onChange, onBlur,
+}: ShippingFieldProps) {
+  const [focused, setFocused] = useState(false);
+  const border = error
+    ? "1px solid rgba(239,68,68,0.8)"
+    : focused
+    ? "1px solid rgba(255,184,0,0.4)"
+    : "1px solid rgba(255,184,0,0.15)";
+
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-white mb-1.5">{label}</label>
+      <div className="relative">
+        <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
+          <Icon size={15} style={{ color: error ? "#f87171" : "#4A4A58" }} />
+        </div>
+        <input
+          type={type}
+          inputMode={inputMode}
+          maxLength={maxLength}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => { setFocused(false); onBlur(); }}
+          placeholder={placeholder}
+          className="w-full pl-9 pr-4 py-3 rounded-xl text-sm text-white outline-none transition-all"
+          style={{ background: "rgba(17,17,22,0.8)", border }}
+        />
+      </div>
+      {error && (
+        <p className="mt-1 text-xs flex items-center gap-1" style={{ color: "#f87171" }}>
+          <AlertCircle size={11} /> {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /* ─── Step 5: Shipping ──────────────────────────────────── */
 function Step5Shipping({
   form,
@@ -479,15 +539,14 @@ function Step5Shipping({
   fieldErrors: ShippingErrors;
   setFieldErrors: (e: ShippingErrors) => void;
 }) {
-  /** Validate a single field on blur without touching others */
-  const validateField = (field: keyof FormState) => {
+  /** Validate a single field on blur without touching sibling fields */
+  const blurValidate = (field: keyof FormState) => {
     const msg = SHIP_VALIDATORS[field as string]?.(form[field] as string) ?? "";
     setFieldErrors({ ...fieldErrors, [field]: msg });
   };
 
-  /** When pincode changes to a valid 6-digit value, pre-fill state */
+  /** Pincode: digits only, max 6; auto-prefill state when valid */
   const handlePincodeChange = (v: string) => {
-    // Only allow digits
     const digits = v.replace(/\D/g, "").slice(0, 6);
     set("pincode", digits);
     if (/^[1-9][0-9]{5}$/.test(digits) && !form.state) {
@@ -495,55 +554,6 @@ function Step5Shipping({
       if (guessed) set("state", guessed);
     }
   };
-
-  /** Shared border style: red on error, gold on focus/default */
-  const borderStyle = (field: keyof FormState, focused: boolean): string => {
-    if (fieldErrors[field]) return "1px solid rgba(239,68,68,0.8)";
-    if (focused) return "1px solid rgba(255,184,0,0.4)";
-    return "1px solid rgba(255,184,0,0.15)";
-  };
-
-  /* ── Reusable text input ─────────────────────────────── */
-  const [focused, setFocused] = useState<string>("");
-
-  const Field = ({
-    label, field, placeholder, type = "text", icon: Icon, inputMode,
-  }: {
-    label: string;
-    field: keyof FormState;
-    placeholder: string;
-    type?: string;
-    icon: React.ElementType;
-    inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-  }) => (
-    <div>
-      <label className="block text-sm font-semibold text-white mb-1.5">{label}</label>
-      <div className="relative">
-        <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
-          <Icon size={15} style={{ color: fieldErrors[field] ? "#f87171" : "#4A4A58" }} />
-        </div>
-        <input
-          type={type}
-          inputMode={inputMode}
-          value={form[field] as string}
-          onChange={(e) => set(field, e.target.value)}
-          onFocus={() => setFocused(field as string)}
-          onBlur={() => { setFocused(""); validateField(field); }}
-          placeholder={placeholder}
-          className="w-full pl-9 pr-4 py-3 rounded-xl text-sm text-white outline-none transition-all"
-          style={{
-            background: "rgba(17,17,22,0.8)",
-            border: borderStyle(field, focused === field),
-          }}
-        />
-      </div>
-      {fieldErrors[field] && (
-        <p className="mt-1 text-xs flex items-center gap-1" style={{ color: "#f87171" }}>
-          <AlertCircle size={11} /> {fieldErrors[field]}
-        </p>
-      )}
-    </div>
-  );
 
   return (
     <div className="space-y-5">
@@ -553,47 +563,47 @@ function Step5Shipping({
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4">
-        <Field label="Full Name" field="customerName" placeholder="Priya Sharma" icon={User} />
-        <Field label="Mobile Number" field="customerPhone" placeholder="9876543210" type="tel" inputMode="numeric" icon={Phone} />
+        <ShippingField
+          label="Full Name" placeholder="Priya Sharma"
+          icon={User} value={form.customerName} error={fieldErrors.customerName}
+          onChange={(v) => set("customerName", v)}
+          onBlur={() => blurValidate("customerName")}
+        />
+        <ShippingField
+          label="Mobile Number" placeholder="9876543210"
+          type="tel" inputMode="numeric"
+          icon={Phone} value={form.customerPhone} error={fieldErrors.customerPhone}
+          onChange={(v) => set("customerPhone", v)}
+          onBlur={() => blurValidate("customerPhone")}
+        />
       </div>
 
-      <Field label="Address Line 1" field="addressLine1" placeholder="Flat no, Street, Locality, Area" icon={MapPin} />
+      <ShippingField
+        label="Address Line 1" placeholder="Flat no, Street, Locality, Area"
+        icon={MapPin} value={form.addressLine1} error={fieldErrors.addressLine1}
+        onChange={(v) => set("addressLine1", v)}
+        onBlur={() => blurValidate("addressLine1")}
+      />
 
       <div className="grid grid-cols-2 gap-3">
-        <Field label="City" field="city" placeholder="Mumbai" icon={MapPin} />
+        <ShippingField
+          label="City" placeholder="Mumbai"
+          icon={MapPin} value={form.city} error={fieldErrors.city}
+          onChange={(v) => set("city", v)}
+          onBlur={() => blurValidate("city")}
+        />
 
-        {/* Pincode — custom handler */}
-        <div>
-          <label className="block text-sm font-semibold text-white mb-1.5">Pincode</label>
-          <div className="relative">
-            <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
-              <MapPin size={15} style={{ color: fieldErrors.pincode ? "#f87171" : "#4A4A58" }} />
-            </div>
-            <input
-              type="text"
-              inputMode="numeric"
-              maxLength={6}
-              value={form.pincode}
-              onChange={(e) => handlePincodeChange(e.target.value)}
-              onFocus={() => setFocused("pincode")}
-              onBlur={() => { setFocused(""); validateField("pincode"); }}
-              placeholder="400001"
-              className="w-full pl-9 pr-4 py-3 rounded-xl text-sm text-white outline-none transition-all"
-              style={{
-                background: "rgba(17,17,22,0.8)",
-                border: borderStyle("pincode", focused === "pincode"),
-              }}
-            />
-          </div>
-          {fieldErrors.pincode && (
-            <p className="mt-1 text-xs flex items-center gap-1" style={{ color: "#f87171" }}>
-              <AlertCircle size={11} /> {fieldErrors.pincode}
-            </p>
-          )}
-        </div>
+        {/* Pincode uses a custom onChange to strip non-digits */}
+        <ShippingField
+          label="Pincode" placeholder="400001"
+          inputMode="numeric" maxLength={6}
+          icon={MapPin} value={form.pincode} error={fieldErrors.pincode}
+          onChange={handlePincodeChange}
+          onBlur={() => blurValidate("pincode")}
+        />
       </div>
 
-      {/* State — dropdown */}
+      {/* State — dropdown (not free-text) */}
       <div>
         <label className="block text-sm font-semibold text-white mb-1.5">State</label>
         <div className="relative">
@@ -604,10 +614,11 @@ function Step5Shipping({
             value={form.state}
             onChange={(e) => {
               set("state", e.target.value);
+              // Clear error immediately on valid selection
               if (fieldErrors.state)
                 setFieldErrors({ ...fieldErrors, state: "" });
             }}
-            onBlur={() => validateField("state")}
+            onBlur={() => blurValidate("state")}
             className="w-full pl-9 pr-4 py-3 rounded-xl text-sm outline-none transition-all appearance-none"
             style={{
               background: "rgba(17,17,22,0.8)",

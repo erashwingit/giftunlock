@@ -154,7 +154,7 @@ function SuccessContent() {
         {/* CTA buttons */}
         <div className="flex flex-col gap-3" style={entry(0.4)}>
           <a
-            href={`https://wa.me/919999999999?text=Hi! I just placed order ${slug.toUpperCase()} on GiftUnlock.in`}
+            href={`https://wa.me/916396151569?text=Hi! I just placed order ${slug.toUpperCase()} on GiftUnlock.in`}
             target="_blank" rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02]"
             style={{ background: "#25D366", color: "#fff" }}
