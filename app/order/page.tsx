@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useRef, useCallback, CSSProperties } from "react";
+import { useState, CSSProperties, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
 import {
-  ArrowLeft, ArrowRight, CheckCircle2, Upload, X, Lock,
-  Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone,
+  ArrowLeft, ArrowRight, CheckCircle2, Lock,
+  Sparkles, Gift, Zap, MapPin, User, Phone,
   AlertCircle, Loader2, Shield,
 } from "lucide-react";
+import MediaUpload, { type MediaUploadData } from "@/app/components/MediaUpload";
+import { generateSecureSlug } from "@/lib/storage-config";
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface FormState {
@@ -17,8 +18,10 @@ interface FormState {
   productSize: string;
   // Step 2
   tier: string;
-  // Step 3
-  mediaFiles: File[];
+  // Step 3 — media (uploaded eagerly; URLs stored here)
+  secureSlug: string;
+  selfieUrl: string | null;
+  clipUrls: [string | null, string | null, string | null];
   // Step 4
   occasion: string;
   wishText: string;
@@ -34,7 +37,10 @@ interface FormState {
 const INITIAL: FormState = {
   productType: "", productSize: "",
   tier: "",
-  mediaFiles: [],
+  // secureSlug generated once at page load — stays stable through the session
+  secureSlug: generateSecureSlug(),
+  selfieUrl: null,
+  clipUrls: [null, null, null],
   occasion: "", wishText: "",
   customerName: "", customerPhone: "",
   addressLine1: "", city: "", state: "", pincode: "",
@@ -66,22 +72,6 @@ function loadRazorpay(): Promise<boolean> {
 }
 
 declare global { interface Window { Razorpay: new (o: object) => { open(): void }; } }
-
-/* ─── Upload files to Supabase Storage ─────────────────── */
-async function uploadMedia(files: File[]): Promise<string[]> {
-  const urls: string[] = [];
-  for (const file of files) {
-    const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { data, error } = await supabase.storage
-      .from("media")
-      .upload(path, file, { contentType: file.type, upsert: false });
-    if (error) throw new Error(`Upload failed for ${file.name}: ${error.message}`);
-    const { data: { publicUrl } } = supabase.storage.from("media").getPublicUrl(data.path);
-    urls.push(publicUrl);
-  }
-  return urls;
-}
 
 /* ─── Shared card style ─────────────────────────────────── */
 const card = (selected = false): CSSProperties => ({
@@ -136,7 +126,6 @@ function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState
         ))}
       </div>
 
-      {/* Size selector */}
       {needsSize && (
         <div className="space-y-2 pt-2">
           <p className="text-sm font-semibold text-white">Select Size</p>
@@ -223,98 +212,26 @@ function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v
 }
 
 /* ─── Step 3: Media Upload ──────────────────────────────── */
-function Step3Media({ form, setFiles }: { form: FormState; setFiles: (files: File[]) => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [dragging, setDragging] = useState(false);
-
-  const addFiles = useCallback((incoming: FileList | null) => {
-    if (!incoming) return;
-    const newFiles = Array.from(incoming).filter((f) => {
-      if (f.size > 100 * 1024 * 1024) { alert(`${f.name} is too large (max 100 MB)`); return false; }
-      return true;
-    });
-    const combined = [...form.mediaFiles, ...newFiles].slice(0, 6);
-    setFiles(combined);
-  }, [form.mediaFiles, setFiles]);
-
-  const remove = (i: number) => {
-    const updated = form.mediaFiles.filter((_, idx) => idx !== i);
-    setFiles(updated);
-  };
-
-  const isPhoto = (f: File) => f.type.startsWith("image/");
-
+function Step3Media({
+  form,
+  onMediaChange,
+}: {
+  form: FormState;
+  onMediaChange: (data: MediaUploadData) => void;
+}) {
   return (
     <div className="space-y-5">
       <div>
         <h2 className="text-2xl font-black text-white mb-1">Upload Your Memories</h2>
         <p className="text-sm" style={{ color: "#4A4A58" }}>
-          At least 1 photo required. Add up to 5 video clips. Max 100 MB per file.
+          Upload a selfie + your favourite clips. Files are encrypted and EXIF-stripped.
         </p>
       </div>
 
-      {/* Drop zone */}
-      <button
-        onClick={() => inputRef.current?.click()}
-        onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
-        onDragLeave={() => setDragging(false)}
-        onDrop={(e) => { e.preventDefault(); setDragging(false); addFiles(e.dataTransfer.files); }}
-        className="w-full rounded-2xl p-8 flex flex-col items-center gap-3 transition-all"
-        style={{
-          border: `2px dashed ${dragging ? "#FFB800" : "rgba(255,184,0,0.25)"}`,
-          background: dragging ? "rgba(255,184,0,0.04)" : "rgba(17,17,22,0.5)",
-        }}
-      >
-        <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "rgba(255,184,0,0.1)" }}>
-          <Upload size={22} style={{ color: "#FFB800" }} />
-        </div>
-        <div className="text-center">
-          <p className="font-semibold text-white text-sm">Click to upload or drag & drop</p>
-          <p className="text-xs mt-0.5" style={{ color: "#4A4A58" }}>
-            JPG, PNG, MP4, MOV — up to 6 files
-          </p>
-        </div>
-      </button>
-
-      <input
-        ref={inputRef}
-        type="file"
-        multiple
-        accept="image/*,video/*"
-        className="hidden"
-        onChange={(e) => addFiles(e.target.files)}
+      <MediaUpload
+        secureSlug={form.secureSlug}
+        onChange={onMediaChange}
       />
-
-      {/* File list */}
-      {form.mediaFiles.length > 0 && (
-        <div className="space-y-2">
-          {form.mediaFiles.map((file, i) => (
-            <div
-              key={`${file.name}-${i}`}
-              className="flex items-center gap-3 p-3 rounded-xl"
-              style={{ background: "rgba(255,184,0,0.04)", border: "1px solid rgba(255,184,0,0.1)" }}
-            >
-              <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0"
-                style={{ background: "rgba(255,184,0,0.1)" }}>
-                {isPhoto(file) ? <Image size={15} style={{ color: "#FFB800" }} /> : <Film size={15} style={{ color: "#FF9A3C" }} />}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm text-white truncate">{file.name}</p>
-                <p className="text-xs" style={{ color: "#4A4A58" }}>{(file.size / (1024 * 1024)).toFixed(1)} MB</p>
-              </div>
-              <button onClick={() => remove(i)} className="text-dark-400 hover:text-white transition-colors">
-                <X size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {form.mediaFiles.length === 0 && (
-        <div className="flex items-center gap-2 text-xs p-3 rounded-xl" style={{ background: "rgba(255,107,53,0.08)", border: "1px solid rgba(255,107,53,0.2)", color: "#FF9A3C" }}>
-          <AlertCircle size={14} /> At least one photo is required to continue.
-        </div>
-      )}
     </div>
   );
 }
@@ -446,6 +363,10 @@ function Step6Review({
   const price = getPrice(form.productType, form.tier);
   const productEmojis: Record<string, string> = { "T-Shirt": "👕", "Beer Mug": "🍺", Hoodie: "🧥", Cushion: "🛋️" };
 
+  // Count uploaded media
+  const clipCount = form.clipUrls.filter(Boolean).length;
+  const mediaCount = (form.selfieUrl ? 1 : 0) + clipCount;
+
   const Row = ({ label, value }: { label: string; value: string }) => (
     <div className="flex justify-between items-start gap-4 text-sm py-2.5 border-b" style={{ borderColor: "rgba(255,184,0,0.06)" }}>
       <span style={{ color: "#4A4A58" }}>{label}</span>
@@ -460,22 +381,38 @@ function Step6Review({
         <p className="text-sm" style={{ color: "#4A4A58" }}>Everything looks good? Let's make this memory permanent.</p>
       </div>
 
-      {/* Summary card */}
       <div className="rounded-2xl p-5 space-y-1"
         style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.12)" }}>
         <Row label="Product" value={`${productEmojis[form.productType] ?? ""} ${form.productType}${form.productSize ? ` (${form.productSize})` : ""}`} />
         <Row label="Tier" value={form.tier} />
         {form.occasion && <Row label="Occasion" value={form.occasion} />}
-        <Row label="Media files" value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}`} />
+        <Row
+          label="Media"
+          value={`${form.selfieUrl ? "1 selfie" : "—"}${clipCount > 0 ? ` + ${clipCount} clip${clipCount > 1 ? "s" : ""}` : ""} · ${mediaCount} file${mediaCount !== 1 ? "s" : ""}`}
+        />
         <Row label="Shipping to" value={`${form.customerName}, ${form.city}, ${form.pincode}`} />
         <Row label="Phone" value={form.customerPhone} />
 
-        {/* Total */}
         <div className="flex justify-between items-center pt-3 mt-1">
           <span className="font-semibold text-white">Total</span>
           <span className="text-2xl font-black" style={{ color: "#FFD700" }}>{formatINR(price)}</span>
         </div>
       </div>
+
+      {/* Selfie thumbnail preview in review */}
+      {form.selfieUrl && (
+        <div className="flex items-center gap-3 p-3 rounded-xl"
+          style={{ background: "rgba(255,184,0,0.04)", border: "1px solid rgba(255,184,0,0.1)" }}>
+          <img src={form.selfieUrl} alt="selfie preview" className="w-12 h-12 rounded-xl object-cover shrink-0" />
+          <div>
+            <p className="text-sm font-semibold text-white">Selfie uploaded</p>
+            <p className="text-xs mt-0.5" style={{ color: "#4A4A58" }}>
+              EXIF stripped · Stored securely
+            </p>
+          </div>
+          <CheckCircle2 size={16} className="ml-auto shrink-0" style={{ color: "#22c55e" }} />
+        </div>
+      )}
 
       {/* Trust row */}
       <div className="flex flex-wrap justify-center gap-4 text-xs" style={{ color: "#333340" }}>
@@ -493,7 +430,6 @@ function Step6Review({
         ))}
       </div>
 
-      {/* Dev bypass notice */}
       {process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID === "rzp_test_PLACEHOLDER" && (
         <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
           style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.2)", color: "#FFB800" }}>
@@ -502,7 +438,6 @@ function Step6Review({
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
           style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
@@ -511,7 +446,6 @@ function Step6Review({
         </div>
       )}
 
-      {/* Pay button */}
       <button
         onClick={onPay}
         disabled={!!loading}
@@ -542,14 +476,12 @@ const STEP_LABELS = ["Product", "Tier", "Media", "Occasion", "Shipping", "Review
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="mb-8">
-      {/* Label */}
       <div className="flex justify-between items-center mb-3">
         <span className="text-xs font-semibold" style={{ color: "#FFB800" }}>
           Step {step} of {STEP_LABELS.length}
         </span>
         <span className="text-xs font-semibold text-white">{STEP_LABELS[step - 1]}</span>
       </div>
-      {/* Bar */}
       <div className="h-1.5 rounded-full" style={{ background: "rgba(255,184,0,0.1)" }}>
         <div
           className="h-full rounded-full transition-all duration-500"
@@ -559,7 +491,6 @@ function ProgressBar({ step }: { step: number }) {
           }}
         />
       </div>
-      {/* Dots */}
       <div className="flex justify-between mt-2">
         {STEP_LABELS.map((_, i) => (
           <div
@@ -589,8 +520,15 @@ export default function OrderPage() {
   const set = (key: keyof FormState, value: string) =>
     setFormState((prev) => ({ ...prev, [key]: value }));
 
-  const setFiles = (files: File[]) =>
-    setFormState((prev) => ({ ...prev, mediaFiles: files }));
+  /** Called by MediaUpload whenever a file is uploaded or removed */
+  const handleMediaChange = useCallback((data: MediaUploadData) => {
+    setFormState((prev) => ({
+      ...prev,
+      secureSlug: data.secureSlug,
+      selfieUrl:  data.selfieUrl,
+      clipUrls:   data.clipUrls,
+    }));
+  }, []);
 
   /* ── Validation per step ───────────────────────────── */
   const validate = (): string | null => {
@@ -603,7 +541,10 @@ export default function OrderPage() {
       case 2:
         return form.tier ? null : "Please select a tier.";
       case 3:
-        return form.mediaFiles.length === 0 ? "Please upload at least one photo." : null;
+        // Selfie is required; clips are optional
+        return form.selfieUrl
+          ? null
+          : "Please upload your selfie photo before continuing.";
       case 4:
         return null; // optional
       case 5: {
@@ -627,15 +568,15 @@ export default function OrderPage() {
   /* ── Payment handler ───────────────────────────────── */
   const handlePay = async () => {
     setError(null);
-    try {
-      /* 1. Upload media files */
-      setLoading("Uploading your memories…");
-      let mediaUrls: string[] = [];
-      if (form.mediaFiles.length > 0) {
-        mediaUrls = await uploadMedia(form.mediaFiles);
-      }
 
-      /* 2. Call checkout API */
+    // Collect non-null media URLs
+    const mediaUrls = [
+      form.selfieUrl,
+      ...form.clipUrls,
+    ].filter(Boolean) as string[];
+
+    try {
+      /* 1. Create order — media already uploaded, just pass URLs + secureSlug */
       setLoading("Creating your order…");
       const shippingAddress = `${form.addressLine1}, ${form.city}, ${form.state} - ${form.pincode}`;
       const occasionNote = [form.occasion, form.wishText].filter(Boolean).join(" | ");
@@ -644,21 +585,23 @@ export default function OrderPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          customerName: form.customerName,
-          customerPhone: form.customerPhone,
+          customerName:    form.customerName,
+          customerPhone:   form.customerPhone,
           shippingAddress,
-          productType: form.productType,
-          productSize: form.productSize || null,
-          tier: form.tier,
-          occasion: occasionNote || null,
+          productType:     form.productType,
+          productSize:     form.productSize || null,
+          tier:            form.tier,
+          occasion:        occasionNote || null,
           mediaUrls,
+          // Pass the slug so checkout stores media under the same folder path
+          secureSlug:      form.secureSlug,
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed");
 
-      /* 3a. Dev bypass — skip Razorpay */
+      /* 2a. Dev bypass — skip Razorpay */
       if (data.bypass) {
         setLoading(null);
         router.push(
@@ -667,20 +610,20 @@ export default function OrderPage() {
         return;
       }
 
-      /* 3b. Load Razorpay & open modal */
+      /* 2b. Load Razorpay & open modal */
       setLoading("Opening payment…");
       const loaded = await loadRazorpay();
       if (!loaded) throw new Error("Could not load payment gateway. Please try again.");
 
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-        amount: data.amount,
-        currency: data.currency,
-        name: "GiftUnlock.in",
+        key:         process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount:      data.amount,
+        currency:    data.currency,
+        name:        "GiftUnlock.in",
         description: `${form.productType} — ${form.tier}`,
-        order_id: data.orderId,
+        order_id:    data.orderId,
         prefill: {
-          name: form.customerName,
+          name:    form.customerName,
           contact: form.customerPhone,
         },
         theme: { color: "#FFB800" },
@@ -708,7 +651,7 @@ export default function OrderPage() {
     switch (step) {
       case 1: return <Step1Product form={form} set={set} />;
       case 2: return <Step2Tier form={form} set={set} />;
-      case 3: return <Step3Media form={form} setFiles={setFiles} />;
+      case 3: return <Step3Media form={form} onMediaChange={handleMediaChange} />;
       case 4: return <Step4Occasion form={form} set={set} />;
       case 5: return <Step5Shipping form={form} set={set} />;
       case 6: return <Step6Review form={form} onPay={handlePay} loading={loading} error={error} />;
@@ -753,11 +696,7 @@ export default function OrderPage() {
       <div className="max-w-lg mx-auto px-4 py-8">
         <ProgressBar step={step} />
 
-        {/* Step content */}
-        <div
-          key={step}
-          style={{ animation: "fadeInUp 0.35s ease both" }}
-        >
+        <div key={step} style={{ animation: "fadeInUp 0.35s ease both" }}>
           {renderStep()}
         </div>
 
