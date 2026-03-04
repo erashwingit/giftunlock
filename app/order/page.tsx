@@ -358,7 +358,13 @@ function Step3Media({ form, setFiles, setBool, setStr }:
                 {linkCopied ? "Copied ✓" : "Copy"}
               </button>
             </div>
-            <p className="text-[10px]" style={{ color: "#555566" }}>Share this link after completing your order. Friends can upload directly.</p>
+            <div className="flex items-start gap-1.5 p-2.5 rounded-lg" style={{ background: "rgba(255,184,0,0.05)", border: "1px solid rgba(255,184,0,0.12)" }}>
+              <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
+              <p className="text-[10px] leading-relaxed" style={{ color: "#9B9BAA" }}>
+                <strong style={{ color: "#FFB800" }}>This link only works after you complete checkout.</strong>{" "}
+                Share it with friends &amp; family once your order is confirmed — they can upload their own clips directly.
+              </p>
+            </div>
           </div>
         )}
       </div>
