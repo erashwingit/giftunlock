@@ -2,8 +2,8 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense, CSSProperties } from "react";
-import { CheckCircle2, Clock, Package, Scan, ArrowRight, Lock, Heart } from "lucide-react";
+import { Suspense, CSSProperties, useState } from "react";
+import { CheckCircle2, Clock, Package, Scan, ArrowRight, Lock, Heart, Copy } from "lucide-react";
 
 const entry = (delay: number): CSSProperties => ({
   animation: `fadeInUp 0.6s ease ${delay}s both`,
@@ -17,7 +17,36 @@ function SuccessContent() {
   const tier    = params.get("tier") ?? "";
   const name    = params.get("name") ?? "Friend";
 
-  const playUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "https://giftunlock.in"}/play/${slug}`;
+  const appUrl   = process.env.NEXT_PUBLIC_APP_URL ?? "https://giftunlock.in";
+  const playUrl  = `${appUrl}/play/${slug}`;
+  const squadUrl = `${appUrl}/squad/${slug}`;
+
+  /* ── Copy to clipboard ──────────────────────────────── */
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(squadUrl);
+    } catch {
+      /* Fallback for browsers/contexts where clipboard API is unavailable */
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = squadUrl;
+        ta.style.position = "fixed";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch {
+        /* Silently fail — nothing more we can do */
+        return;
+      }
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   const timeline = [
     { icon: CheckCircle2, label: "Order confirmed",          done: true,  color: "#FFB800" },
@@ -90,23 +119,42 @@ function SuccessContent() {
           ))}
         </div>
 
-        {/* Info box */}
-        <div className="rounded-xl p-4 text-sm space-y-1"
+        {/* Share link box */}
+        <div className="rounded-xl p-4 space-y-3"
           style={{ background: "rgba(255,184,0,0.05)", border: "1px solid rgba(255,184,0,0.1)", ...entry(0.35) }}>
-          <p className="font-semibold text-white flex items-center gap-1.5">
-            <Heart size={13} style={{ color: "#FFB800" }} /> Your QR play link
+          <p className="font-semibold text-white flex items-center gap-1.5 text-sm">
+            <Heart size={13} style={{ color: "#FFB800" }} /> Share this memory
           </p>
+          {/* Shareable URL display */}
+          <div className="flex items-center gap-2 p-2.5 rounded-lg"
+            style={{ background: "rgba(17,17,22,0.8)", border: "1px solid rgba(255,184,0,0.12)" }}>
+            <span className="flex-1 font-mono text-xs truncate" style={{ color: "#FFB800" }}>
+              giftunlock.in/squad/{slug}
+            </span>
+          </div>
+          {/* Copy button */}
+          <button
+            onClick={handleCopy}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.01]"
+            style={{
+              background: copied
+                ? "linear-gradient(135deg, #22c55e, #16a34a)"
+                : "linear-gradient(135deg, #FFD700 0%, #FFB800 50%, #FF9A3C 100%)",
+              color: "#0A0A0B",
+            }}
+          >
+            <Copy size={14} />
+            {copied ? "✅ Copied!" : "Copy Shareable Link"}
+          </button>
           <p style={{ color: "#4A4A58" }} className="text-xs leading-relaxed">
-            Once your video is ready, scanning the QR on your gift will redirect to:{" "}
-            <span className="font-mono" style={{ color: "#FFB800" }}>giftunlock.in/play/{slug}</span>.
-            Bookmark this link to track status.
+            Share this link with your recipient. Once the memory video is ready, they'll see everything at this URL.
           </p>
         </div>
 
         {/* CTA buttons */}
         <div className="flex flex-col gap-3" style={entry(0.4)}>
           <a
-            href={`https://wa.me/919999999999?text=Hi! I just placed order ${slug.toUpperCase()} on GiftUnlock.in`}
+            href={`https://wa.me/916396151569?text=Hi! I just placed order ${slug.toUpperCase()} on GiftUnlock.in`}
             target="_blank" rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02]"
             style={{ background: "#25D366", color: "#fff" }}

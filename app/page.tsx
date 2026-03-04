@@ -632,7 +632,7 @@ function Footer() {
             <p className="text-sm leading-relaxed max-w-xs" style={{ color: "#9B9BAA" }}>
               Unlock the Memory They Will Never Forget
             </p>
-            {/* Fix 3 — trust icons inside footer */}
+            {/* Trust icons */}
             <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1">
               {[["🔒", "Razorpay Secured"], ["🚚", "Pan India Delivery"], ["⏱", "48hr Turnaround"]].map(([e, l]) => (
                 <div key={l} className="flex items-center gap-1.5">
@@ -640,6 +640,27 @@ function Footer() {
                   <span className="text-xs" style={{ color: "#555566" }}>{l}</span>
                 </div>
               ))}
+            </div>
+            <a
+              href="https://wa.me/916396151569"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs text-green-400 hover:text-green-300 transition-colors"
+            >
+              💬 WhatsApp Support
+            </a>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs font-semibold text-white uppercase tracking-wider">Product</p>
+            <div className="space-y-2">
+              {[["Order Now", "/order"], ["How It Works", "#how-it-works"], ["Products", "#products"], ["Pricing", "#pricing"]].map(
+                ([label, href]) => (
+                  <a key={label} href={href} className="block text-sm hover:text-white transition-colors" style={{ color: "#4A4A58" }}>
+                    {label}
+                  </a>
+                )
+              )}
             </div>
           </div>
 
@@ -663,7 +684,7 @@ function Footer() {
             <div className="flex gap-4 pt-1">
               <a href="https://instagram.com/giftunlock" target="_blank" rel="noopener noreferrer"
                 className="text-xl transition-transform hover:scale-110" title="Instagram">📸</a>
-              <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer"
+              <a href="https://wa.me/916396151569" target="_blank" rel="noopener noreferrer"
                 className="text-xl transition-transform hover:scale-110" title="WhatsApp">💬</a>
             </div>
           </div>
