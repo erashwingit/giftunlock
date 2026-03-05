@@ -38,7 +38,9 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false })
     .range(offset, offset + perPage - 1);
 
-  if (status) query = query.eq("payment_status", status);
+  // "fulfilled" lives in order_status; everything else is payment_status
+  if (status === "fulfilled") query = query.eq("order_status", "fulfilled");
+  else if (status)            query = query.eq("payment_status", status);
 
   const { data: orders, count, error } = await query;
   if (error) {
