@@ -12,6 +12,7 @@ interface CleanupResult {
   freed_mb:      number;
   deleted_count: number;
   paths:         string[];
+  dry_run:       boolean;
 }
 
 export default function AdminStoragePage() {
@@ -20,6 +21,11 @@ export default function AdminStoragePage() {
   const [cleaning, setCleaning] = useState(false);
   const [log,      setLog]      = useState<CleanupResult | null>(null);
   const [error,    setError]    = useState("");
+
+  // Confirmation modal state
+  const [preview,       setPreview]       = useState<CleanupResult | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [showModal,     setShowModal]     = useState(false);
 
   async function loadStats() {
     setLoading(true);
@@ -35,17 +41,39 @@ export default function AdminStoragePage() {
     }
   }
 
-  async function cleanAbandoned() {
-    if (!confirm("Delete all media files uploaded >48 h ago with no paid order? This cannot be undone.")) return;
-    setCleaning(true);
+  /** Step 1 — dry-run preview, then open confirmation modal */
+  async function requestCleanup() {
+    setPreviewLoading(true);
+    setError("");
     setLog(null);
+    try {
+      const res = await fetch("/api/admin/storage?dry_run=true", { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json();
+        setError(data.error ?? "Preview failed");
+        return;
+      }
+      const result: CleanupResult = await res.json();
+      setPreview(result);
+      setShowModal(true);
+    } catch {
+      setError("Network error");
+    } finally {
+      setPreviewLoading(false);
+    }
+  }
+
+  /** Step 2 — real delete, confirmed by user */
+  async function confirmCleanup() {
+    setShowModal(false);
+    setCleaning(true);
     setError("");
     try {
       const res = await fetch("/api/admin/storage", { method: "DELETE" });
       if (res.ok) {
         const result: CleanupResult = await res.json();
         setLog(result);
-        await loadStats();   // refresh stats
+        await loadStats();
       } else {
         const data = await res.json();
         setError(data.error ?? "Cleanup failed");
@@ -54,6 +82,7 @@ export default function AdminStoragePage() {
       setError("Network error");
     } finally {
       setCleaning(false);
+      setPreview(null);
     }
   }
 
@@ -129,7 +158,6 @@ export default function AdminStoragePage() {
               </div>
             </div>
 
-            {/* Supabase link */}
             <a
               href="https://supabase.com/dashboard/project/xoifkwplilapwllzyazl/storage"
               target="_blank"
@@ -151,20 +179,20 @@ export default function AdminStoragePage() {
           <h2 className="text-sm font-black text-white">Clean Abandoned Uploads</h2>
           <p className="text-xs mt-1" style={{ color: "#4A4A58" }}>
             Permanently deletes media files uploaded more than 48 hours ago that are not
-            linked to any paid order. Frees up storage space.
+            linked to any paid order. A preview is shown before anything is deleted.
           </p>
         </div>
 
         <button
-          onClick={cleanAbandoned}
-          disabled={cleaning || loading}
+          onClick={requestCleanup}
+          disabled={cleaning || loading || previewLoading}
           className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold disabled:opacity-50 transition-opacity hover:opacity-80"
           style={{ background: "rgba(239,68,68,0.1)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.2)" }}
         >
-          {cleaning ? (
-            <>
-              <span className="animate-spin">⟳</span> Cleaning…
-            </>
+          {previewLoading ? (
+            <><span className="animate-spin">⟳</span> Scanning…</>
+          ) : cleaning ? (
+            <><span className="animate-spin">⟳</span> Deleting…</>
           ) : (
             <>🧹 Clean Abandoned Uploads &gt;48h</>
           )}
@@ -189,10 +217,80 @@ export default function AdminStoragePage() {
           </div>
         )}
 
-        {error && (
-          <p className="text-xs text-red-400">{error}</p>
-        )}
+        {error && <p className="text-xs text-red-400">{error}</p>}
       </div>
+
+      {/* ── Confirmation Modal ── */}
+      {showModal && preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(4px)" }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl p-6 space-y-5 text-white"
+            style={{ background: "#1A1A24", border: "1px solid rgba(239,68,68,0.3)" }}
+          >
+            {/* Modal header */}
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h3 className="font-black text-base">Confirm Permanent Deletion</h3>
+                <p className="text-xs mt-1" style={{ color: "#4A4A58" }}>
+                  This action cannot be undone.
+                </p>
+              </div>
+            </div>
+
+            {/* Preview summary */}
+            <div
+              className="rounded-xl p-4 text-sm space-y-1"
+              style={{ background: "rgba(239,68,68,0.07)", border: "1px solid rgba(239,68,68,0.15)" }}
+            >
+              {preview.deleted_count === 0 ? (
+                <p style={{ color: "#4A4A58" }}>No abandoned files found — nothing to delete.</p>
+              ) : (
+                <>
+                  <p>
+                    <span className="font-bold text-white">{preview.deleted_count}</span>
+                    <span style={{ color: "#4A4A58" }}> files will be permanently deleted</span>
+                  </p>
+                  <p>
+                    <span className="font-bold text-white">{preview.freed_mb.toFixed(2)} MB</span>
+                    <span style={{ color: "#4A4A58" }}> will be freed</span>
+                  </p>
+                  {preview.paths.length > 0 && (
+                    <div className="mt-2 max-h-28 overflow-y-auto space-y-0.5 text-xs font-mono" style={{ color: "#4A4A58" }}>
+                      {preview.paths.map((p) => (
+                        <p key={p} className="truncate">• {p}</p>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Modal actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => { setShowModal(false); setPreview(null); }}
+                className="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-opacity hover:opacity-70"
+                style={{ background: "#0E0E14", border: "1px solid rgba(255,255,255,0.06)", color: "#888" }}
+              >
+                Cancel
+              </button>
+              {preview.deleted_count > 0 && (
+                <button
+                  onClick={confirmCleanup}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-bold transition-opacity hover:opacity-80"
+                  style={{ background: "rgba(239,68,68,0.15)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)" }}
+                >
+                  Delete {preview.deleted_count} files
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

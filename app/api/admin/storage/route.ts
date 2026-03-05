@@ -66,16 +66,21 @@ export async function GET(req: NextRequest) {
 /**
  * DELETE /api/admin/storage
  * Cleans up media files uploaded >48 h ago that are NOT referenced by any paid order.
- * Returns { freed_mb, deleted_count, paths }
+ *
+ * Query params:
+ *   ?dry_run=true  — preview only; returns what WOULD be deleted without removing anything
+ *
+ * Returns { freed_mb, deleted_count, paths, dry_run }
  */
 export async function DELETE(req: NextRequest) {
   if (!(await isAdmin(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const supabase   = createAdminClient();
-  const files      = await listAllFiles(supabase);
-  const cutoff     = new Date(Date.now() - STALE_HOURS * 60 * 60 * 1000);
+  const dryRun   = req.nextUrl.searchParams.get("dry_run") === "true";
+  const supabase = createAdminClient();
+  const files    = await listAllFiles(supabase);
+  const cutoff   = new Date(Date.now() - STALE_HOURS * 60 * 60 * 1000);
 
   // Collect all media URLs referenced by paid orders
   const { data: orders } = await supabase
@@ -86,7 +91,6 @@ export async function DELETE(req: NextRequest) {
   const referencedUrls = new Set<string>();
   (orders ?? []).forEach((o) => {
     (o.media_urls ?? []).forEach((url: string) => {
-      // Extract just the filename/path portion from the URL
       const parts = url.split(`/${BUCKET}/`);
       if (parts[1]) referencedUrls.add(parts[1]);
     });
@@ -99,19 +103,21 @@ export async function DELETE(req: NextRequest) {
     return isStale && !referencedUrls.has(f.name);
   });
 
-  if (toDelete.length === 0) {
-    return NextResponse.json({ freed_mb: 0, deleted_count: 0, paths: [] });
-  }
-
   const paths      = toDelete.map((f) => f.name);
   const freedBytes = toDelete.reduce((sum, f) => sum + (f.metadata?.size ?? 0), 0);
+  const freed_mb   = parseFloat((freedBytes / (1024 * 1024)).toFixed(2));
+
+  // Dry-run: return preview without deleting
+  if (dryRun) {
+    return NextResponse.json({ freed_mb, deleted_count: toDelete.length, paths, dry_run: true });
+  }
+
+  if (toDelete.length === 0) {
+    return NextResponse.json({ freed_mb: 0, deleted_count: 0, paths: [], dry_run: false });
+  }
 
   const { error } = await supabase.storage.from(BUCKET).remove(paths);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({
-    freed_mb:      parseFloat((freedBytes / (1024 * 1024)).toFixed(2)),
-    deleted_count: toDelete.length,
-    paths,
-  });
+  return NextResponse.json({ freed_mb, deleted_count: toDelete.length, paths, dry_run: false });
 }
