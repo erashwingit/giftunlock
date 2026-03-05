@@ -16,12 +16,14 @@ const securityHeaders = [
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
-      // Next.js inline scripts + Vercel Analytics
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com",
+      // Next.js inline scripts + Vercel Analytics + Razorpay checkout
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://checkout.razorpay.com",
       // Supabase storage images + self
-      "img-src 'self' data: blob: https://xoifkwplilapwllzyazl.supabase.co",
-      // Supabase API calls
-      "connect-src 'self' https://xoifkwplilapwllzyazl.supabase.co https://va.vercel-scripts.com",
+      "img-src 'self' data: blob: https://xoifkwplilapwllzyazl.supabase.co https://cdn.razorpay.com",
+      // Supabase API calls + Razorpay API
+      "connect-src 'self' https://xoifkwplilapwllzyazl.supabase.co https://va.vercel-scripts.com https://api.razorpay.com https://lumberjack.razorpay.com",
+      // Razorpay payment modal iframe
+      "frame-src https://api.razorpay.com https://checkout.razorpay.com",
       // Fonts from self only
       "font-src 'self'",
       // Styles: self + inline (Next.js CSS-in-JS)
