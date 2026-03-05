@@ -42,12 +42,6 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
-  // Raise body size limit for /api/upload (video files up to 50 MB)
-  experimental: {
-    serverActions: {
-      bodySizeLimit: "55mb",
-    },
-  },
   images: {
     remotePatterns: [
       {

@@ -16,13 +16,6 @@ const MAX_VIDEOS       = 2;
 // Allow up to 60s for large video uploads on Vercel
 export const maxDuration = 60;
 
-// Raise Vercel's default 4.5 MB body limit to 55 MB to allow video uploads
-export const config = {
-  api: {
-    bodyParser: false,       // Next.js App Router uses its own body parsing
-    responseLimit: "55mb",
-  },
-};
 
 export async function POST(req: NextRequest) {
   try {

@@ -3,6 +3,7 @@
 /**
  * Global error boundary — must include its own <html>/<body>
  * because it replaces the root layout on catastrophic errors.
+ * Avoids all hooks to prevent useContext null during Next.js 16 prerender.
  */
 export default function GlobalError({
   reset,
@@ -31,21 +32,21 @@ export default function GlobalError({
           <p style={{ color: "#4A4A58", marginBottom: "1.5rem" }}>
             Please try refreshing the page.
           </p>
-          <button
-            onClick={() => reset()}
+          <a
+            href="/"
             style={{
+              display: "inline-block",
               background: "#FFB800",
               color: "#0A0A0B",
-              border: "none",
+              textDecoration: "none",
               padding: "0.75rem 1.5rem",
               borderRadius: "0.75rem",
               fontWeight: 700,
-              cursor: "pointer",
               fontSize: "0.9rem",
             }}
           >
-            Try again
-          </button>
+            Go home
+          </a>
         </div>
       </body>
     </html>
