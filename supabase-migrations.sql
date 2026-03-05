@@ -56,3 +56,38 @@ $$;
 -- ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY "service role only" ON promo_codes
 --   USING (auth.role() = 'service_role');
+
+-- ------------------------------------------------------------
+-- 5. Rate-limiting: admin login attempts
+--    Stores per-IP login failures for brute-force protection.
+--    Records older than 15 minutes are pruned after each check.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS admin_login_attempts (
+  id         UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  ip         TEXT        NOT NULL,
+  success    BOOLEAN     NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Index for fast per-IP lookups within a time window
+CREATE INDEX IF NOT EXISTS idx_admin_login_attempts_ip_created
+  ON admin_login_attempts (ip, created_at DESC);
+
+-- ------------------------------------------------------------
+-- 6. Audit log: admin actions
+--    Non-blocking writes from auditLog() in lib/admin-audit.ts
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+  id         UUID        DEFAULT gen_random_uuid() PRIMARY KEY,
+  action     TEXT        NOT NULL,
+  ip         TEXT,
+  user_agent TEXT,
+  details    JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Index for chronological queries and per-action filtering
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_created
+  ON admin_audit_log (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_log_action
+  ON admin_audit_log (action);
