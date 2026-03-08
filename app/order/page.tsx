@@ -3,7 +3,7 @@
 import { useState, useRef, useCallback, CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { supabase } from "@/lib/supabase";
+ 
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, X, Lock,
   Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone,
@@ -67,20 +67,19 @@ function loadRazorpay(): Promise<boolean> {
 
 declare global { interface Window { Razorpay: new (o: object) => { open(): void }; } }
 
-/* ─── Upload files to Supabase Storage ─────────────────── */
+/* ─── Upload files via server-side API (uses admin client) ──── */
 async function uploadMedia(files: File[]): Promise<string[]> {
-  const urls: string[] = [];
+  const formData = new FormData();
   for (const file of files) {
-    const ext = file.name.split(".").pop() ?? "bin";
-    const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    const { data, error } = await supabase.storage
-      .from("media")
-      .upload(path, file, { contentType: file.type, upsert: false });
-    if (error) throw new Error(`Upload failed for ${file.name}: ${error.message}`);
-    const { data: { publicUrl } } = supabase.storage.from("media").getPublicUrl(data.path);
-    urls.push(publicUrl);
+    formData.append('files', file);
   }
-  return urls;
+  const res = await fetch('/api/upload-media', {
+    method: 'POST',
+    body: formData,
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error ?? 'Upload failed');
+  return data.urls as string[];
 }
 
 /* ─── Shared card style ─────────────────────────────────── */
@@ -230,7 +229,7 @@ function Step3Media({ form, setFiles }: { form: FormState; setFiles: (files: Fil
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
     const newFiles = Array.from(incoming).filter((f) => {
-      if (f.size > 100 * 1024 * 1024) { alert(`${f.name} is too large (max 100 MB)`); return false; }
+      if (f.size > 50 * 1024 * 1024) { alert(`${f.name} is too large (max 100 MB)`); return false; }
       return true;
     });
     const combined = [...form.mediaFiles, ...newFiles].slice(0, 6);
