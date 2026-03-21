@@ -3,42 +3,39 @@ import { createAdminClient } from '@/lib/supabase';
 
 export async function POST(req: NextRequest) {
   try {
-    const formData = await req.formData();
-    const files = formData.getAll('files') as File[];
+    // Only receives file metadata (name + type) — no file bytes come through Vercel
+    const { files } = (await req.json()) as {
+      files: Array<{ name: string; type: string }>;
+    };
 
     if (!files || files.length === 0) {
       return NextResponse.json({ error: 'No files provided' }, { status: 400 });
     }
 
     const supabaseAdmin = createAdminClient();
-    const urls: string[] = [];
+    const signedUploads: Array<{ signedUrl: string; path: string; publicUrl: string }> = [];
 
     for (const file of files) {
       const ext = file.name.split('.').pop() ?? 'bin';
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
 
-      const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-
+      // Generate a signed URL so the client can upload directly to Supabase Storage
       const { data, error } = await supabaseAdmin.storage
         .from('media')
-        .upload(path, buffer, {
-          contentType: file.type,
-          upsert: false,
-        });
+        .createSignedUploadUrl(path);
 
-      if (error) {
-        throw new Error(`Upload failed for ${file.name}: ${error.message}`);
+      if (error || !data) {
+        throw new Error(`Failed to create signed URL for ${file.name}: ${error?.message}`);
       }
 
       const {
         data: { publicUrl },
-      } = supabaseAdmin.storage.from('media').getPublicUrl(data.path);
+      } = supabaseAdmin.storage.from('media').getPublicUrl(path);
 
-      urls.push(publicUrl);
+      signedUploads.push({ signedUrl: data.signedUrl, path, publicUrl });
     }
 
-    return NextResponse.json({ urls });
+    return NextResponse.json({ signedUploads });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Upload failed';
     console.error('[upload-media]', message);
