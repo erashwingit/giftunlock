@@ -1,8 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
+import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
-/** Verify ADMIN_SECRET header or query-param */
-function isAdmin(req: NextRequest): boolean {
+/** Verify session cookie, header, or query-param */
+async function isAdmin(req: NextRequest): Promise<boolean> {
+  const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
+  if (await isValidAdminToken(cookieToken)) return true;
   const secret =
     req.headers.get("x-admin-secret") ??
     req.nextUrl.searchParams.get("secret");
@@ -17,7 +20,7 @@ function isAdmin(req: NextRequest): boolean {
  * Returns: { orders[], count, stats, page, perPage }
  */
 export async function GET(req: NextRequest) {
-  if (!isAdmin(req)) {
+  if (!(await isAdmin(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
