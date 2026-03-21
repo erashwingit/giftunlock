@@ -67,19 +67,38 @@ function loadRazorpay(): Promise<boolean> {
 
 declare global { interface Window { Razorpay: new (o: object) => { open(): void }; } }
 
-/* ─── Upload files via server-side API (uses admin client) ──── */
+/* ─── Upload files via Supabase signed URLs (bypasses Vercel 4.5 MB body limit) ── */
 async function uploadMedia(files: File[]): Promise<string[]> {
-  const formData = new FormData();
-  for (const file of files) {
-    formData.append('files', file);
-  }
+  // Step 1: Send only file metadata to the server — no file bytes go through Vercel
   const res = await fetch('/api/upload-media', {
     method: 'POST',
-    body: formData,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      files: files.map((f) => ({ name: f.name, type: f.type })),
+    }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-  return data.urls as string[];
+
+  const { signedUploads } = data as {
+    signedUploads: Array<{ signedUrl: string; path: string; publicUrl: string }>;
+  };
+
+  // Step 2: Upload each file directly to Supabase Storage via the signed URL
+  // This completely bypasses Vercel's serverless body-size limit — videos included
+  await Promise.all(
+    files.map((file, i) =>
+      fetch(signedUploads[i].signedUrl, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type },
+        body: file,
+      }).then((r) => {
+        if (!r.ok) throw new Error(`Failed to upload ${file.name}`);
+      })
+    )
+  );
+
+  return signedUploads.map((u) => u.publicUrl);
 }
 
 /* ─── Shared card style ─────────────────────────────────── */
