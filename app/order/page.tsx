@@ -67,19 +67,39 @@ function loadRazorpay(): Promise<boolean> {
 
 declare global { interface Window { Razorpay: new (o: object) => { open(): void }; } }
 
-/* ─── Upload files via server-side API (uses admin client) ──── */
+/* ─── Upload files via Supabase signed URLs (bypasses Vercel 4.5 MB body limit) ── */
 async function uploadMedia(files: File[]): Promise<string[]> {
-    const formData = new FormData();
-  for (const file of files) {
-    formData.append('files', file);
-  }
-  const res = await fetch('/api/upload-media', {
-    method: 'POST',
-    body: formData,
+  // Step 1: Send only file metadata — no file bytes go through Vercel
+  const res = await fetch("/api/upload-media", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      files: files.map((f) => ({ name: f.name, type: f.type })),
+    }),
   });
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-  return data.urls as string[]; }
+  if (!res.ok) throw new Error(data.error ?? "Upload failed");
+
+  const { signedUploads } = data as {
+    signedUploads: Array<{ signedUrl: string; path: string; publicUrl: string }>;
+  };
+
+  // Step 2: Upload each file directly to Supabase via the signed URL.
+  // This completely bypasses Vercel's serverless body-size limit — videos included.
+  await Promise.all(
+    files.map((file, i) =>
+      fetch(signedUploads[i].signedUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
+      }).then((r) => {
+        if (!r.ok) throw new Error(`Failed to upload ${file.name}`);
+      })
+    )
+  );
+
+  return signedUploads.map((u) => u.publicUrl);
+}
 
 /* ─── Shared card style ─────────────────────────────────── */
 const card = (selected = false): CSSProperties => ({
@@ -425,8 +445,6 @@ const SHIP_VALIDATORS: Record<string, (v: string) => string> = {
     return "";
   },
   customerPhone: (v) => {
-    // Normalize: strip optional +91 prefix, spaces, and dashes so users
-    // can type "+91 98765 43210" or "9876543210" — both accepted
     const normalized = v.replace(/^\+?91[\s\-]?/, "").replace(/[\s\-]/g, "");
     if (!/^[6-9][0-9]{9}$/.test(normalized))
       return "Enter a valid 10-digit Indian mobile number";
@@ -435,7 +453,6 @@ const SHIP_VALIDATORS: Record<string, (v: string) => string> = {
   addressLine1: (v) => {
     const t = v.trim();
     if (t.length < 10) return "Please enter a complete address";
-    // Reject all-same character or very short numeric-only strings
     if (/^(.)\1+$/.test(t)) return "Please enter a complete address";
     if (/^[0-9]{1,5}$/.test(t)) return "Please enter a complete address";
     return "";
@@ -468,10 +485,7 @@ export function validateShippingFields(form: FormState): ShippingErrors {
   return errors;
 }
 
-/* ─── Stable ShippingField component (defined at module level) ──
-   IMPORTANT: must NOT be defined inside Step5Shipping — doing so
-   creates a new component type on every render, causing React to
-   unmount/remount the input on every keystroke (focus loss bug).   */
+/* ─── Stable ShippingField component (defined at module level) ── */
 interface ShippingFieldProps {
   label: string;
   value: string;
@@ -537,13 +551,11 @@ function Step5Shipping({
   fieldErrors: ShippingErrors;
   setFieldErrors: (e: ShippingErrors) => void;
 }) {
-  /** Validate a single field on blur without touching sibling fields */
   const blurValidate = (field: keyof FormState) => {
     const msg = SHIP_VALIDATORS[field as string]?.(form[field] as string) ?? "";
     setFieldErrors({ ...fieldErrors, [field]: msg });
   };
 
-  /** Pincode: digits only, max 6; auto-prefill state when valid */
   const handlePincodeChange = (v: string) => {
     const digits = v.replace(/\D/g, "").slice(0, 6);
     set("pincode", digits);
@@ -590,8 +602,6 @@ function Step5Shipping({
           onChange={(v) => set("city", v)}
           onBlur={() => blurValidate("city")}
         />
-
-        {/* Pincode uses a custom onChange to strip non-digits */}
         <ShippingField
           label="Pincode" placeholder="400001"
           inputMode="numeric" maxLength={6}
@@ -601,7 +611,7 @@ function Step5Shipping({
         />
       </div>
 
-      {/* State — dropdown (not free-text) */}
+      {/* State — dropdown */}
       <div>
         <label className="block text-sm font-semibold text-white mb-1.5">State</label>
         <div className="relative">
@@ -612,9 +622,7 @@ function Step5Shipping({
             value={form.state}
             onChange={(e) => {
               set("state", e.target.value);
-              // Clear error immediately on valid selection
-              if (fieldErrors.state)
-                setFieldErrors({ ...fieldErrors, state: "" });
+              if (fieldErrors.state) setFieldErrors({ ...fieldErrors, state: "" });
             }}
             onBlur={() => blurValidate("state")}
             className="w-full pl-9 pr-4 py-3 rounded-xl text-sm outline-none transition-all appearance-none"
@@ -672,7 +680,6 @@ function Step6Review({
         <p className="text-sm" style={{ color: "#4A4A58" }}>Everything looks good? Let's make this memory permanent.</p>
       </div>
 
-      {/* Summary card */}
       <div className="rounded-2xl p-5 space-y-1"
         style={{ background: "linear-gradient(145deg, #1A1A24, #111116)", border: "1px solid rgba(255,184,0,0.12)" }}>
         <Row label="Product" value={`${productEmojis[form.productType] ?? ""} ${form.productType}${form.productSize ? ` (${form.productSize})` : ""}`} />
@@ -681,15 +688,12 @@ function Step6Review({
         <Row label="Media files" value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}`} />
         <Row label="Shipping to" value={`${form.customerName}, ${form.city}, ${form.pincode}`} />
         <Row label="Phone" value={form.customerPhone} />
-
-        {/* Total */}
         <div className="flex justify-between items-center pt-3 mt-1">
           <span className="font-semibold text-white">Total</span>
           <span className="text-2xl font-black" style={{ color: "#FFD700" }}>{formatINR(price)}</span>
         </div>
       </div>
 
-      {/* Trust row */}
       <div className="flex flex-wrap justify-center gap-4 text-xs" style={{ color: "#333340" }}>
         {(
           [
@@ -705,7 +709,6 @@ function Step6Review({
         ))}
       </div>
 
-      {/* Dev bypass notice */}
       {process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID === "rzp_test_PLACEHOLDER" && (
         <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
           style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.2)", color: "#FFB800" }}>
@@ -714,7 +717,6 @@ function Step6Review({
         </div>
       )}
 
-      {/* Error */}
       {error && (
         <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
           style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
@@ -723,7 +725,6 @@ function Step6Review({
         </div>
       )}
 
-      {/* Pay button */}
       <button
         onClick={onPay}
         disabled={!!loading}
@@ -754,14 +755,12 @@ const STEP_LABELS = ["Product", "Tier", "Media", "Occasion", "Shipping", "Review
 function ProgressBar({ step }: { step: number }) {
   return (
     <div className="mb-8">
-      {/* Label */}
       <div className="flex justify-between items-center mb-3">
         <span className="text-xs font-semibold" style={{ color: "#FFB800" }}>
           Step {step} of {STEP_LABELS.length}
         </span>
         <span className="text-xs font-semibold text-white">{STEP_LABELS[step - 1]}</span>
       </div>
-      {/* Bar */}
       <div className="h-1.5 rounded-full" style={{ background: "rgba(255,184,0,0.1)" }}>
         <div
           className="h-full rounded-full transition-all duration-500"
@@ -771,7 +770,6 @@ function ProgressBar({ step }: { step: number }) {
           }}
         />
       </div>
-      {/* Dots */}
       <div className="flex justify-between mt-2">
         {STEP_LABELS.map((_, i) => (
           <div
@@ -797,7 +795,6 @@ export default function OrderPage() {
   const [form, setFormState] = useState<FormState>(INITIAL);
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /** Field-level errors for the shipping step */
   const [fieldErrors, setFieldErrors] = useState<ShippingErrors>({});
 
   const set = (key: keyof FormState, value: string) =>
@@ -806,7 +803,6 @@ export default function OrderPage() {
   const setFiles = (files: File[]) =>
     setFormState((prev) => ({ ...prev, mediaFiles: files }));
 
-  /* ── Validation per step ───────────────────────────── */
   const validate = (): string | null => {
     switch (step) {
       case 1:
@@ -819,9 +815,8 @@ export default function OrderPage() {
       case 3:
         return form.mediaFiles.length === 0 ? "Please upload at least one photo." : null;
       case 4:
-        return null; // optional
+        return null;
       case 5: {
-        /* Run full field-level validation and surface errors inline */
         const errors = validateShippingFields(form);
         setFieldErrors(errors);
         const hasErrors = Object.values(errors).some(Boolean);
@@ -841,18 +836,15 @@ export default function OrderPage() {
 
   const back = () => { setError(null); setStep((s) => s - 1); };
 
-  /* ── Payment handler ───────────────────────────────── */
   const handlePay = async () => {
     setError(null);
     try {
-      /* 1. Upload media files */
       setLoading("Uploading your memories…");
       let mediaUrls: string[] = [];
       if (form.mediaFiles.length > 0) {
         mediaUrls = await uploadMedia(form.mediaFiles);
       }
 
-      /* 2. Call checkout API */
       setLoading("Creating your order…");
       const shippingAddress = `${form.addressLine1}, ${form.city}, ${form.state} - ${form.pincode}`;
       const occasionNote = [form.occasion, form.wishText].filter(Boolean).join(" | ");
@@ -875,7 +867,6 @@ export default function OrderPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Checkout failed");
 
-      /* 3a. Dev bypass — skip Razorpay */
       if (data.bypass) {
         setLoading(null);
         router.push(
@@ -884,7 +875,6 @@ export default function OrderPage() {
         return;
       }
 
-      /* 3b. Load Razorpay & open modal */
       setLoading("Opening payment…");
       const loaded = await loadRazorpay();
       if (!loaded) throw new Error("Could not load payment gateway. Please try again.");
@@ -970,15 +960,10 @@ export default function OrderPage() {
       <div className="max-w-lg mx-auto px-4 py-8">
         <ProgressBar step={step} />
 
-        {/* Step content */}
-        <div
-          key={step}
-          style={{ animation: "fadeInUp 0.35s ease both" }}
-        >
+        <div key={step} style={{ animation: "fadeInUp 0.35s ease both" }}>
           {renderStep()}
         </div>
 
-        {/* Validation error (steps 1–5) */}
         {error && step < 6 && (
           <div className="mt-4 flex items-center gap-2 text-xs p-3 rounded-xl"
             style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
@@ -987,7 +972,6 @@ export default function OrderPage() {
           </div>
         )}
 
-        {/* Navigation button (steps 1–5) */}
         {step < 6 && (
           <button
             onClick={next}
