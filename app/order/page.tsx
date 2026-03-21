@@ -79,7 +79,7 @@ async function uploadMedia(files: File[]): Promise<string[]> {
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error ?? 'Upload failed');
-  return data.urls as string[];
+  return data.urls as string[]; }
 
 /* ─── Shared card style ─────────────────────────────────── */
 const card = (selected = false): CSSProperties => ({
