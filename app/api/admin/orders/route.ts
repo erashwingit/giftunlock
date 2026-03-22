@@ -2,23 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
-/** Verify session cookie, header, or query-param */
 async function isAdmin(req: NextRequest): Promise<boolean> {
   const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
   if (await isValidAdminToken(cookieToken)) return true;
-  const secret =
-    req.headers.get("x-admin-secret") ??
-    req.nextUrl.searchParams.get("secret");
+  const secret = req.headers.get("x-admin-secret") ?? req.nextUrl.searchParams.get("secret");
   return !!process.env.ADMIN_SECRET && secret === process.env.ADMIN_SECRET;
 }
 
-/**
- * GET /api/admin/orders
- * Headers: x-admin-secret: <ADMIN_SECRET>
- * Query:   ?page=1  &status=paid|pending|failed
- *
- * Returns: { orders[], count, stats, page, perPage }
- */
 export async function GET(req: NextRequest) {
   if (!(await isAdmin(req))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -38,7 +28,12 @@ export async function GET(req: NextRequest) {
     .order("created_at", { ascending: false })
     .range(offset, offset + perPage - 1);
 
-  if (status) query = query.eq("payment_status", status);
+  // "fulfilled" lives on order_status; all other filters use payment_status
+  if (status === "fulfilled") {
+    query = query.eq("order_status", "fulfilled");
+  } else if (status) {
+    query = query.eq("payment_status", status);
+  }
 
   const { data: orders, count, error } = await query;
   if (error) {
@@ -50,14 +45,15 @@ export async function GET(req: NextRequest) {
   if (page === 1 && !status) {
     const { data: all } = await supabase
       .from("orders")
-      .select("payment_status, tier");
+      .select("payment_status, tier, order_status");
     if (all) {
       stats = {
-        total:   all.length,
-        paid:    all.filter((o) => o.payment_status === "paid").length,
-        pending: all.filter((o) => o.payment_status === "pending").length,
-        failed:  all.filter((o) => o.payment_status === "failed").length,
-        nfc:     all.filter((o) => o.tier === "NFC VIP").length,
+        total:     all.length,
+        paid:      all.filter((o) => o.payment_status === "paid").length,
+        pending:   all.filter((o) => o.payment_status === "pending").length,
+        failed:    all.filter((o) => o.payment_status === "failed").length,
+        nfc:       all.filter((o) => o.tier === "NFC VIP").length,
+        fulfilled: all.filter((o) => o.order_status === "fulfilled").length,
       };
     }
   }

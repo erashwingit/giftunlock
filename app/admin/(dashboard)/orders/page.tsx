@@ -5,7 +5,7 @@ import type { Order } from "@/lib/supabase";
 
 /* ── Types ──────────────────────────────────────────────── */
 interface Stats {
-  total: number; paid: number; pending: number; failed: number; nfc: number;
+  total: number; paid: number; pending: number; failed: number; nfc: number; fulfilled: number;
 }
 interface AdminResponse {
   orders: Order[]; count: number; stats: Stats | null; page: number; perPage: number;
@@ -180,13 +180,14 @@ export default function AdminOrdersPage() {
 
       {/* Stats */}
       {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
           {([
-            ["Total",   stats.total,   "#FFB800"],
-            ["Paid",    stats.paid,    "#22c55e"],
-            ["Pending", stats.pending, "#FFB800"],
-            ["Failed",  stats.failed,  "#ef4444"],
-            ["NFC VIP", stats.nfc,     "#a855f7"],
+            ["Total",     stats.total,     "#FFB800"],
+            ["Paid",      stats.paid,      "#22c55e"],
+            ["Pending",   stats.pending,   "#FFB800"],
+            ["Failed",    stats.failed,    "#ef4444"],
+            ["NFC VIP",   stats.nfc,       "#a855f7"],
+            ["Fulfilled", stats.fulfilled, "#a855f7"],
           ] as [string, number, string][]).map(([label, value, color]) => (
             <div
               key={label}
@@ -288,7 +289,7 @@ export default function AdminOrdersPage() {
                     </div>
                   ) : null}
                 </td>
-                {/* Status */}
+                {/* Status — shows payment_status badge + fulfilled badge if applicable */}
                 <td className="px-4 py-3">
                   <div className="space-y-1">
                     <StatusBadge status={order.payment_status} />
