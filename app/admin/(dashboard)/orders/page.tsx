@@ -225,7 +225,7 @@ export default function AdminOrdersPage() {
           <thead>
             <tr style={{ background: "#1A1A24" }}>
               {[
-                "Order ID", "Name", "Product", "Tier",
+                "Order ID", "Name", "Email", "Product", "Tier",
                 "Occasion", "Promo Used", "Total", "Status", "Date", "Actions",
               ].map((h) => (
                 <th
@@ -255,6 +255,16 @@ export default function AdminOrdersPage() {
                 <td className="px-4 py-3">
                   <div className="text-xs font-semibold text-white">{order.customer_name}</div>
                   <div className="text-[11px]" style={{ color: "#4A4A58" }}>{order.customer_phone}</div>
+                </td>
+                {/* Email */}
+                <td className="px-4 py-3 text-xs" style={{ color: "#9090A0" }}>
+                  {order.customer_email ? (
+                    <a href={`mailto:${order.customer_email}`} style={{ color: "#6B8AFD" }}>
+                      {order.customer_email}
+                    </a>
+                  ) : (
+                    <span style={{ color: "#252530" }}>—</span>
+                  )}
                 </td>
                 {/* Product */}
                 <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#D0D0D8" }}>
@@ -351,7 +361,7 @@ export default function AdminOrdersPage() {
             ))}
             {orders.length === 0 && !loading && (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-sm" style={{ color: "#252530" }}>
+                <td colSpan={11} className="px-4 py-12 text-center text-sm" style={{ color: "#252530" }}>
                   No orders found.
                 </td>
               </tr>

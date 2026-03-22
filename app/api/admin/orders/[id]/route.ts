@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { sendOrderFulfilledEmail } from "@/lib/email";
 
 async function isAdmin(req: NextRequest): Promise<boolean> {
   // Accept session cookie or legacy x-admin-secret header
@@ -63,7 +64,20 @@ export async function PATCH(req: NextRequest, { params }: Props) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
 
+  /* Auto-set fulfilled_at when transitioning to fulfilled */
+  if (updates.order_status === "fulfilled") {
+    updates.fulfilled_at = new Date().toISOString();
+  }
+
   const supabase = createAdminClient();
+
+  /* Fetch current order to send email if needed */
+  const { data: current } = await supabase
+    .from("orders")
+    .select("order_status, customer_email, customer_name, product_type, tier, secure_slug")
+    .eq("id", id)
+    .single();
+
   const { data, error } = await supabase
     .from("orders")
     .update(updates)
@@ -74,5 +88,21 @@ export async function PATCH(req: NextRequest, { params }: Props) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  /* Send fulfilled email if transitioning to fulfilled and customer has email */
+  if (
+    updates.order_status === "fulfilled" &&
+    current?.order_status !== "fulfilled" &&
+    current?.customer_email
+  ) {
+    sendOrderFulfilledEmail({
+      to:          current.customer_email,
+      customerName: current.customer_name,
+      productType:  current.product_type,
+      tier:         current.tier,
+      secureSlug:   current.secure_slug,
+    }).catch((e) => console.error("Fulfilled email failed:", e));
+  }
+
   return NextResponse.json(data);
 }

@@ -17,6 +17,7 @@
     "lucide-react": "^0.576.0",
     "nanoid": "^5.1.6",
     "next": "16.1.6",
+    "resend": "^3.0.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.5.0"

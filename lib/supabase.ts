@@ -24,6 +24,7 @@ export function createAdminClient() {
 export interface Order {
   id:                    string;
   customer_name:         string;
+  customer_email:        string | null;
   customer_phone:        string;
   shipping_address:      string;
   product_type:          string;
@@ -43,6 +44,8 @@ export interface Order {
   razorpay_order_id:     string | null;
   destination_video_url: string | null;
   artistic_qr_url:       string | null;
+  fulfilled_at:          string | null;
+  followup_sent:         boolean;
   created_at:            string;
 }
 

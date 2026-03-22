@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
     const {
       customerName,
       customerPhone,
+      customerEmail,
       shippingAddress,
       productType,
       productSize,
@@ -86,6 +87,7 @@ export async function POST(req: NextRequest) {
     } = body as {
       customerName:    string;
       customerPhone:   string;
+      customerEmail?:  string;
       shippingAddress: string;
       productType:     string;
       productSize?:    string;
@@ -146,6 +148,7 @@ export async function POST(req: NextRequest) {
       .from("orders")
       .insert({
         customer_name:     customerName,
+        customer_email:    customerEmail ?? null,
         customer_phone:    customerPhone,
         shipping_address:  shippingAddress,
         product_type:      productType,

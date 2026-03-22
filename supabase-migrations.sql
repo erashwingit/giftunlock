@@ -56,3 +56,11 @@ $$;
 -- ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY "service role only" ON promo_codes
 --   USING (auth.role() = 'service_role');
+
+-- ------------------------------------------------------------
+-- 5. customer_email, fulfilled_at, followup_sent columns
+-- ------------------------------------------------------------
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS customer_email   TEXT,
+  ADD COLUMN IF NOT EXISTS fulfilled_at     TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS followup_sent    BOOLEAN NOT NULL DEFAULT false;

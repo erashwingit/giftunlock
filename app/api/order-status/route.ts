@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("orders")
-    .select("payment_status, product_type, tier, customer_name")
+    .select("payment_status, order_status, product_type, tier, customer_name")
     .eq("secure_slug", slug)
     .single();
 

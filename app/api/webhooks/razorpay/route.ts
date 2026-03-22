@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { createAdminClient } from "@/lib/supabase";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 /**
  * POST /api/webhooks/razorpay
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest) {
         /* Idempotency: skip update if order is already paid */
         const { data: existing } = await supabase
           .from("orders")
-          .select("payment_status")
+          .select("payment_status, customer_email, customer_name, product_type, tier, secure_slug")
           .eq("razorpay_order_id", orderId)
           .single();
 
@@ -50,8 +51,21 @@ export async function POST(req: NextRequest) {
             .update({ payment_status: "paid" })
             .eq("razorpay_order_id", orderId);
 
-          if (error) console.error("DB update error:", error);
-          else console.log("Order marked paid:", orderId);
+          if (error) {
+            console.error("DB update error:", error);
+          } else {
+            console.log("Order marked paid:", orderId);
+            /* Send order confirmation email (fire-and-forget) */
+            if (existing?.customer_email) {
+              sendOrderConfirmationEmail({
+                to:          existing.customer_email,
+                customerName: existing.customer_name,
+                productType:  existing.product_type,
+                tier:         existing.tier,
+                secureSlug:   existing.secure_slug,
+              }).catch((e) => console.error("Confirmation email failed:", e));
+            }
+          }
         }
       }
     }
