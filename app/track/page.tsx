@@ -15,6 +15,7 @@ export default function TrackPage() {
     e.preventDefault();
     const clean = slug.trim().toLowerCase();
     if (!clean) { setError("Please enter your order ID."); return; }
+    if (!/^[a-zA-Z0-9_-]{6,16}$/.test(clean)) { setError("Invalid order ID format. Please check your confirmation email."); return; }
     router.push(`/track/${clean}`);
   };
 
