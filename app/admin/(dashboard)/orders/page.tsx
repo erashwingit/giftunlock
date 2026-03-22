@@ -38,6 +38,13 @@ function StatusBadge({ status }: { status: string }) {
   return badge(status, bg, color);
 }
 
+function PrintTypeBadge({ printType }: { printType?: string | null }) {
+  if (printType === "photo_print_qr") {
+    return badge("🖼️ Photo + QR", "rgba(255,184,0,0.15)", "#FFB800");
+  }
+  return badge("🎨 QR Only", "rgba(168,85,247,0.12)", "#a855f7");
+}
+
 /* ── Media modal ────────────────────────────────────────── */
 function MediaModal({ urls, onClose }: { urls: string[]; onClose: () => void }) {
   return (
@@ -299,13 +306,14 @@ export default function AdminOrdersPage() {
                     </div>
                   ) : null}
                 </td>
-                {/* Status — shows payment_status badge + fulfilled badge if applicable */}
+                {/* Status — shows payment_status badge + fulfilled badge + print type */}
                 <td className="px-4 py-3">
                   <div className="space-y-1">
                     <StatusBadge status={order.payment_status} />
                     {(order as Order & { order_status?: string }).order_status === "fulfilled" && (
                       badge("fulfilled", "rgba(168,85,247,0.12)", "#a855f7")
                     )}
+                    <PrintTypeBadge printType={order.print_type} />
                   </div>
                 </td>
                 {/* Date */}
