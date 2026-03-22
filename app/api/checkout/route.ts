@@ -81,8 +81,7 @@ export async function POST(req: NextRequest) {
       occasion,
       mediaUrls = [],
       personalMessage,
-      groupMemory,
-      groupLink,
+      printType,
       promoCode,
     } = body as {
       customerName:    string;
@@ -95,8 +94,7 @@ export async function POST(req: NextRequest) {
       occasion?:       string;
       mediaUrls:       string[];
       personalMessage?: string;
-      groupMemory?:    boolean;
-      groupLink?:      string;
+      printType?:      "photo_print_qr" | "qr_only";
       promoCode?:      string;
     };
 
@@ -157,8 +155,7 @@ export async function POST(req: NextRequest) {
         occasion:          occasion ?? null,
         media_urls:        mediaUrls,
         personal_message:  personalMessage ?? null,
-        group_memory:      groupMemory ?? false,
-        group_link:        groupLink ?? null,
+        print_type:        printType ?? "qr_only",
         promo_code:        appliedCode || null,
         discount_amount:   discountAmount || null,
         final_total:       finalTotal,

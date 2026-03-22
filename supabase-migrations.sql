@@ -64,3 +64,11 @@ ALTER TABLE orders
   ADD COLUMN IF NOT EXISTS customer_email   TEXT,
   ADD COLUMN IF NOT EXISTS fulfilled_at     TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS followup_sent    BOOLEAN NOT NULL DEFAULT false;
+
+-- ------------------------------------------------------------
+-- 6. print_type column
+-- ------------------------------------------------------------
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS print_type TEXT
+    DEFAULT 'qr_only'
+    CHECK (print_type IN ('photo_print_qr', 'qr_only'));
