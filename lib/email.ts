@@ -11,7 +11,7 @@ function getResend(): Resend {
   return resend;
 }
 
-const FROM = "GiftUnlock <orders@giftunlock.in>";
+const FROM = process.env.RESEND_FROM_EMAIL ?? "GiftUnlock <onboarding@resend.dev>";
 const SITE = "https://giftunlock.in";
 
 /* ── Email A: Order Confirmed (fires on payment.captured) ── */

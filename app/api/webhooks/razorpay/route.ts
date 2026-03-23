@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
         /* Idempotency: skip update if order is already paid */
         const { data: existing } = await supabase
           .from("orders")
-          .select("payment_status, customer_email, customer_name, product_type, tier, secure_slug")
+          .select("payment_status, customer_email, customer_name, product_type, tier, secure_slug, email_sent")
           .eq("razorpay_order_id", orderId)
           .single();
 
@@ -55,15 +55,17 @@ export async function POST(req: NextRequest) {
             console.error("DB update error:", error);
           } else {
             console.log("Order marked paid:", orderId);
-            /* Send order confirmation email (fire-and-forget) */
-            if (existing?.customer_email) {
+            /* Send confirmation email only if not already sent by success page */
+            if (existing?.customer_email && !existing?.email_sent) {
               sendOrderConfirmationEmail({
-                to:          existing.customer_email,
+                to:           existing.customer_email,
                 customerName: existing.customer_name,
                 productType:  existing.product_type,
                 tier:         existing.tier,
                 secureSlug:   existing.secure_slug,
-              }).catch((e) => console.error("Confirmation email failed:", e));
+              }).then(() =>
+                supabase.from("orders").update({ email_sent: true }).eq("razorpay_order_id", orderId)
+              ).catch((e) => console.error("Confirmation email failed:", e));
             }
           }
         }

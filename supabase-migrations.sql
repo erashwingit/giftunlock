@@ -72,3 +72,9 @@ ALTER TABLE orders
   ADD COLUMN IF NOT EXISTS print_type TEXT
     DEFAULT 'qr_only'
     CHECK (print_type IN ('photo_print_qr', 'qr_only'));
+
+-- ------------------------------------------------------------
+-- 7. email_sent flag (idempotency for confirmation emails)
+-- ------------------------------------------------------------
+ALTER TABLE orders
+  ADD COLUMN IF NOT EXISTS email_sent BOOLEAN DEFAULT false;

@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense, CSSProperties, useState } from "react";
+import { Suspense, CSSProperties, useState, useEffect } from "react";
 import { CheckCircle2, Clock, Package, Scan, ArrowRight, Lock, Heart, Copy } from "lucide-react";
 
 const entry = (delay: number): CSSProperties => ({
@@ -19,6 +19,17 @@ function SuccessContent() {
 
   /* playUrl for display only — uses hardcoded domain so it always looks right */
   const playUrl = `https://giftunlock.in/play/${slug}`;
+
+  /* Fire-and-forget: trigger confirmation email from success page.
+     This is the primary delivery path — more reliable than webhook alone. */
+  useEffect(() => {
+    if (!slug) return;
+    fetch("/api/send-confirmation", {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ secureSlug: slug }),
+    }).catch(() => {}); // silent fail — webhook is the backup
+  }, [slug]);
 
   /* ── Copy to clipboard ──────────────────────────────── */
   const [copied, setCopied] = useState(false);
