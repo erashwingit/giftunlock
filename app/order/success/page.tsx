@@ -35,9 +35,8 @@ function SuccessContent() {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
-    /* Build URL at click time using the real origin — never relies on
-       a build-time env var that may be undefined in production. */
-    const url = `${window.location.origin}/squad/${slug}`;
+    /* Build URL at click time using the real origin */
+    const url = `${window.location.origin}/play/${slug}`;
     let success = false;
 
     /* Primary: modern Clipboard API (requires HTTPS — always true on giftunlock.in) */
@@ -102,7 +101,7 @@ function SuccessContent() {
           </h1>
           <p className="text-sm" style={{ color: "#4A4A58" }}>
             Your <strong className="text-white">{product}</strong>
-            {tier && <> ({tier})</>} memory is now being crafted with love.
+            {tier && <> ({tier})</>} is now being crafted with love.
           </p>
         </div>
 
@@ -147,13 +146,13 @@ function SuccessContent() {
         <div className="rounded-xl p-4 space-y-3"
           style={{ background: "rgba(255,184,0,0.05)", border: "1px solid rgba(255,184,0,0.1)", ...entry(0.35) }}>
           <p className="font-semibold text-white flex items-center gap-1.5 text-sm">
-            <Heart size={13} style={{ color: "#FFB800" }} /> Share this memory
+            <Heart size={13} style={{ color: "#FFB800" }} /> Share this gift
           </p>
           {/* Shareable URL display */}
           <div className="flex items-center gap-2 p-2.5 rounded-lg"
             style={{ background: "rgba(17,17,22,0.8)", border: "1px solid rgba(255,184,0,0.12)" }}>
             <span className="flex-1 font-mono text-xs truncate" style={{ color: "#FFB800" }}>
-              giftunlock.in/squad/{slug}
+              giftunlock.in/play/{slug}
             </span>
           </div>
           {/* Copy button */}
@@ -168,10 +167,10 @@ function SuccessContent() {
             }}
           >
             <Copy size={14} />
-            {copied ? "✅ Copied!" : "Copy Shareable Link"}
+            {copied ? "✅ Copied!" : "Copy Play Link"}
           </button>
           <p style={{ color: "#4A4A58" }} className="text-xs leading-relaxed">
-            Share this link with your recipient. Once the memory video is ready, they'll see everything at this URL.
+            Share this link with your recipient. Once the gift is ready, they can scan the QR or open this URL to watch their personalised video.
           </p>
         </div>
 
