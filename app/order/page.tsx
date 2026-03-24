@@ -282,6 +282,51 @@ function Step3Media({ form, setFiles, setStr }:
         <h2 className="text-2xl font-black text-white mb-1">Upload Your Memories</h2>
         <p className="text-sm" style={{ color: "#4A4A58" }}>Add your best photos &amp; video clips below.</p>
       </div>
+      {/* ── Print Preference ──────────────────────────────── */}
+      <div className="rounded-2xl p-5 space-y-3" style={{ background: "linear-gradient(145deg,#1a1500,#111116)", border: "1px solid rgba(255,184,0,0.3)" }}>
+        <p className="text-base font-black text-white">⭐ How do you want your product printed?</p>
+        <p className="text-xs" style={{ color: "#9B9BAA" }}>Choose how your gift looks when they hold it in their hands.</p>
+        {[
+          {
+            id: "photo_print_qr",
+            icon: "📸",
+            title: "Photo + QR Code",
+            badge: "Recommended",
+            desc: "Your photo is printed on the product with a small QR code in the corner. Scan it → plays your cinematic memory video ❤️",
+          },
+          {
+            id: "qr_only",
+            icon: "🎨",
+            title: "QR Code Only",
+            badge: null,
+            desc: "Our signature artistic QR code design — the full product surface is the QR artwork.",
+          },
+        ].map(({ id, icon, title, badge, desc }) => {
+          const sel = form.printType === id;
+          return (
+            <button
+              key={id}
+              onClick={() => setStr("printType", id)}
+              className="w-full text-left p-4 rounded-xl transition-all hover:scale-[1.01]"
+              style={{
+                background: sel ? "linear-gradient(145deg,#1e1a0a,#1A1A24)" : "rgba(17,17,22,0.6)",
+                border: sel ? "2px solid #FFB800" : "1px solid rgba(255,184,0,0.15)",
+                boxShadow: sel ? "0 0 18px rgba(255,184,0,0.12)" : "none",
+              }}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-lg">{icon}</span>
+                <span className="font-bold text-white text-sm">{title}</span>
+                {badge && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FFB800", color: "#0A0A0B" }}>{badge}</span>
+                )}
+                {sel && <span className="ml-auto text-green-400 text-sm">✓</span>}
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: sel ? "#C8A84B" : "#4A4A58" }}>{desc}</p>
+            </button>
+          );
+        })}
+      </div>
       <div className="flex items-start gap-3 p-4 rounded-xl"
         style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.3)" }}>
         <span className="text-lg shrink-0">📁</span>
@@ -379,51 +424,6 @@ function Step3Media({ form, setFiles, setStr }:
           onBlur={e => (e.target.style.borderColor = "rgba(255,184,0,0.15)")}
         />
         <p className="text-xs mt-1 text-right" style={{ color: "#4A4A58" }}>{form.personalMessage.length}/400</p>
-      </div>
-      {/* ── Print Preference ──────────────────────────────── */}
-      <div className="rounded-2xl p-5 space-y-3" style={{ background: "linear-gradient(145deg,#1a1500,#111116)", border: "1px solid rgba(255,184,0,0.3)" }}>
-        <p className="text-base font-black text-white">⭐ How do you want your product printed?</p>
-        <p className="text-xs" style={{ color: "#9B9BAA" }}>Choose how your gift looks when they hold it in their hands.</p>
-        {[
-          {
-            id: "photo_print_qr",
-            icon: "📸",
-            title: "Photo + QR Code",
-            badge: "Recommended",
-            desc: "Your photo is printed on the product with a small QR code in the corner. Scan it → plays your cinematic memory video ❤️",
-          },
-          {
-            id: "qr_only",
-            icon: "🎨",
-            title: "QR Code Only",
-            badge: null,
-            desc: "Our signature artistic QR code design — the full product surface is the QR artwork.",
-          },
-        ].map(({ id, icon, title, badge, desc }) => {
-          const sel = form.printType === id;
-          return (
-            <button
-              key={id}
-              onClick={() => setStr("printType", id)}
-              className="w-full text-left p-4 rounded-xl transition-all hover:scale-[1.01]"
-              style={{
-                background: sel ? "linear-gradient(145deg,#1e1a0a,#1A1A24)" : "rgba(17,17,22,0.6)",
-                border: sel ? "2px solid #FFB800" : "1px solid rgba(255,184,0,0.15)",
-                boxShadow: sel ? "0 0 18px rgba(255,184,0,0.12)" : "none",
-              }}
-            >
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-lg">{icon}</span>
-                <span className="font-bold text-white text-sm">{title}</span>
-                {badge && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#FFB800", color: "#0A0A0B" }}>{badge}</span>
-                )}
-                {sel && <span className="ml-auto text-green-400 text-sm">✓</span>}
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: sel ? "#C8A84B" : "#4A4A58" }}>{desc}</p>
-            </button>
-          );
-        })}
       </div>
     </div>
   );
