@@ -100,8 +100,10 @@ export default function AdminOrdersPage() {
   const [loading,    setLoading]   = useState(true);
   const [page,       setPage]      = useState(1);
   const [filter,     setFilter]    = useState("");
-  const [mediaUrls,  setMediaUrls] = useState<string[] | null>(null);
-  const [actionMsg,  setActionMsg] = useState("");
+  const [mediaUrls,   setMediaUrls]   = useState<string[] | null>(null);
+  const [actionMsg,   setActionMsg]   = useState("");
+  const [videoInputId, setVideoInputId] = useState<string | null>(null);
+  const [videoInput,   setVideoInput]   = useState("");
 
   const load = useCallback(async (pg: number, fil: string) => {
     setLoading(true);
@@ -143,6 +145,26 @@ export default function AdminOrdersPage() {
       load(page, filter);
     } else {
       setActionMsg("Failed to delete media");
+    }
+    setTimeout(() => setActionMsg(""), 3000);
+  }
+
+  async function saveVideoUrl(id: string) {
+    const url = videoInput.trim();
+    if (!url) return;
+    setActionMsg("Saving video URL…");
+    const res = await fetch(`/api/admin/orders/${id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ destination_video_url: url }),
+    });
+    if (res.ok) {
+      setActionMsg("✓ Video URL saved");
+      setVideoInputId(null);
+      setVideoInput("");
+      load(page, filter);
+    } else {
+      setActionMsg("Failed to save video URL");
     }
     setTimeout(() => setActionMsg(""), 3000);
   }
@@ -350,6 +372,49 @@ export default function AdminOrdersPage() {
                     >
                       🗑 Del Media
                     </button>
+                    {/* Set Video URL */}
+                    {videoInputId === order.id ? (
+                      <div className="flex flex-col gap-1">
+                        <input
+                          autoFocus
+                          value={videoInput}
+                          onChange={e => setVideoInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === "Enter") saveVideoUrl(order.id); if (e.key === "Escape") { setVideoInputId(null); setVideoInput(""); } }}
+                          placeholder="https://youtu.be/…"
+                          className="w-full px-2 py-1 rounded-lg text-[11px] text-white outline-none"
+                          style={{ background: "rgba(17,17,22,0.9)", border: "1px solid rgba(255,184,0,0.4)", minWidth: 160 }}
+                        />
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => saveVideoUrl(order.id)}
+                            className="flex-1 px-2 py-1 rounded-lg text-[11px] font-bold"
+                            style={{ background: "#22c55e", color: "#fff" }}
+                          >✓ Save</button>
+                          <button
+                            onClick={() => { setVideoInputId(null); setVideoInput(""); }}
+                            className="px-2 py-1 rounded-lg text-[11px] font-bold"
+                            style={{ background: "rgba(255,255,255,0.06)", color: "#4A4A58" }}
+                          >✕</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          setVideoInputId(order.id);
+                          setVideoInput((order as Order & { destination_video_url?: string }).destination_video_url ?? "");
+                        }}
+                        className="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-opacity hover:opacity-80 whitespace-nowrap"
+                        style={{
+                          background: (order as Order & { destination_video_url?: string }).destination_video_url
+                            ? "rgba(34,197,94,0.08)" : "rgba(255,184,0,0.06)",
+                          color:  (order as Order & { destination_video_url?: string }).destination_video_url
+                            ? "#22c55e" : "#9B9BAA",
+                          border: `1px solid ${(order as Order & { destination_video_url?: string }).destination_video_url ? "rgba(34,197,94,0.2)" : "rgba(255,184,0,0.1)"}`,
+                        }}
+                      >
+                        {(order as Order & { destination_video_url?: string }).destination_video_url ? "🎬 Edit Video URL" : "🎬 Set Video URL"}
+                      </button>
+                    )}
                     {/* Mark Fulfilled */}
                     <button
                       onClick={() => markFulfilled(order.id)}
