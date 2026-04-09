@@ -97,15 +97,15 @@ function Hero() {
         <div className="flex justify-center mb-8">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
             style={{ background: "rgba(255,184,0,0.08)", border: "1px solid rgba(255,184,0,0.25)", color: "#FFB800" }}>
-            ✨ Artistic QR · 48hr Production · Ships Across India
+            ✨ AI-Crafted · Artistic QR · Ships Pan India in 48hr
           </span>
         </div>
         <div className="text-center space-y-5 mb-14">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-white">
-            Unlock the Memory <span style={{ color: "#FFB800" }}>They Will Never Forget</span>
+            Your Memories,{" "}<span style={{ color: "#FFB800" }}>Recreated by AI.</span>{" "}Unlocked by a Scan. ❤️
           </h1>
           <p className="text-lg leading-relaxed max-w-2xl mx-auto" style={{ color: "#9B9BAA" }}>
-            Turn your photos &amp; videos into a premium gift with a stunning artistic QR
+            We take your photos &amp; videos and recreate them into a cinematic AI memory — colour-graded, scored, and printed as an artistic QR code on a premium gift. One scan. The magic plays.
           </p>
         </div>
         <div className="flex items-center justify-center gap-8 sm:gap-16 mb-14">
@@ -138,7 +138,7 @@ function Hero() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/order" className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
             style={{ background: "linear-gradient(135deg,#FFD700,#FFB800,#FF9A3C)", color: "#0A0A0B", boxShadow: "0 0 32px rgba(255,184,0,0.3)" }}>
-            🎁 Create Your Gift
+            🎁 Create Your Memory Gift
           </Link>
           <a href="#how-it-works" className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-base transition-all"
             style={{ border: "1px solid rgba(255,184,0,0.2)", color: "#9B9BAA" }}>▶ How It Works</a>
@@ -376,7 +376,7 @@ function QrShowcase() {
 function HowItWorks() {
   const steps = [
     { num: "01", emoji: "📸", title: "You Place the Order",  desc: "Pick your product, occasion, and upload your photo + video clips — birthdays, weddings, trips, anything that matters.", color: "#FFB800" },
-    { num: "02", emoji: "🎨", title: "We Craft Your Memory", desc: "Our team edits a cinematic 15–30 sec video from your clips and generates your stunning artistic QR code.", color: "#FF9A3C" },
+    { num: "02", emoji: "🤖", title: "AI Recreates Your Memory", desc: "Our AI team colour-grades your footage, adds cinematic transitions and music — transforming raw clips into a professional memory film. Then we generate your unique artistic QR code.", color: "#FF9A3C" },
     { num: "03", emoji: "📱", title: "Scan to Relive It",    desc: "Your photo is printed on the gift with a small QR in the corner. Scan it → plays your video ❤️", color: "#FFD700" },
   ];
   return (
@@ -408,6 +408,64 @@ function HowItWorks() {
   );
 }
 
+
+/* ─── WHY AI ───────────────────────────────────────────────── */
+function WhyAI() {
+  const cards = [
+    {
+      icon: "🎬",
+      title: "Cinematic AI Recreation",
+      desc: "We use AI to colour-grade your footage, add transitions, background music, and visual effects — turning ordinary clips into a movie-quality memory film.",
+    },
+    {
+      icon: "🎨",
+      title: "Artistic QR Code Design",
+      desc: "Your QR code isn't a boring black-and-white grid. It's a full-surface artwork — Holi colours, Haldi textures, festive patterns — designed to look stunning even before it's scanned.",
+    },
+    {
+      icon: "📱",
+      title: "Instant Scan, No App",
+      desc: "Any phone camera scans it instantly. No app download. No login. Just point and watch the memory play.",
+    },
+    {
+      icon: "♾️",
+      title: "Lifetime Video Hosting",
+      desc: "Your memory video is hosted forever. The QR code never expires. The gift keeps working years from now.",
+    },
+  ];
+  return (
+    <section className="py-24" style={{ background: "#080810" }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <FadeUp className="text-center mb-16 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>
+            Not Just a Photo Print
+          </p>
+          <h2 className="text-4xl font-black text-white">
+            We Don&apos;t Just Print Your Photos.{" "}
+            <span style={{ color: "#FFB800" }}>We Recreate Them.</span>
+          </h2>
+          <p className="max-w-xl mx-auto" style={{ color: "#9B9BAA" }}>
+            AI-crafted cinematic memories that make ChatGPT, Google, and your recipients stop scrolling.
+          </p>
+        </FadeUp>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {cards.map(({ icon, title, desc }, i) => (
+            <FadeUp key={title} delay={i * 0.1}>
+              <div
+                className="p-6 rounded-2xl h-full flex flex-col gap-4 transition-transform hover:scale-[1.02]"
+                style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.1)" }}
+              >
+                <div className="text-3xl">{icon}</div>
+                <h3 className="font-bold text-white text-sm">{title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "#9B9BAA" }}>{desc}</p>
+              </div>
+            </FadeUp>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
 
 /* ─── PRODUCTS ─────────────────────────────────────────────── */
 function Products() {
@@ -537,6 +595,72 @@ function TrustBar() {
   );
 }
 
+/* ─── FAQ ─────────────────────────────────────────────────── */
+function FAQ() {
+  const faqs = [
+    {
+      q: "What does 'AI-crafted cinematic memory' mean?",
+      a: "We don't just stitch your clips together. Our AI team colour-grades your footage, adds cinematic transitions, background music, and visual effects — transforming ordinary photos and videos into a professional-quality memory film.",
+    },
+    {
+      q: "Do I need an app to scan the QR code?",
+      a: "No app needed. Any smartphone camera — iPhone or Android — scans it directly. Just open your camera, point at the QR, and the memory plays instantly.",
+    },
+    {
+      q: "How long does delivery take?",
+      a: "Production takes 48 hours from the time you submit your media. We ship pan India — most customers receive their gift within 3–5 business days.",
+    },
+    {
+      q: "What if the QR code doesn't scan?",
+      a: "We offer a 100% Scannable Guarantee. If the QR code on your product fails to scan for any reason, we reprint and reship at zero cost to you.",
+    },
+    {
+      q: "What occasions is this best for?",
+      a: "Birthdays, anniversaries, weddings, Holi, Diwali, Valentine's Day, Mother's Day, Father's Day, graduations, farewells — any moment worth remembering.",
+    },
+    {
+      q: "Is GiftUnlock available across India?",
+      a: "Yes. We ship pan India. Based in Delhi, we offer same-day DTF printing for Delhi/NCR orders. All other cities receive orders within 3–5 business days via courier.",
+    },
+  ];
+  return (
+    <section className="py-24" style={{ background: "#0A0A0B" }}>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+        <FadeUp className="text-center mb-16 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>
+            Got Questions?
+          </p>
+          <h2 className="text-4xl font-black text-white">
+            Frequently Asked <span style={{ color: "#FFB800" }}>Questions</span>
+          </h2>
+        </FadeUp>
+        <div className="space-y-4">
+          {faqs.map(({ q, a }, i) => (
+            <FadeUp key={q} delay={i * 0.07}>
+              <div
+                className="p-6 rounded-2xl"
+                style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.1)" }}
+              >
+                <h3 className="font-bold text-white text-sm mb-2">{q}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "#9B9BAA" }}>{a}</p>
+              </div>
+            </FadeUp>
+          ))}
+        </div>
+        <FadeUp delay={0.5} className="text-center mt-10">
+          <Link
+            href="/order"
+            className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
+            style={{ background: "linear-gradient(135deg,#FFD700,#FFB800,#FF9A3C)", color: "#0A0A0B", boxShadow: "0 0 32px rgba(255,184,0,0.3)" }}
+          >
+            🎁 Create Your Memory Gift →
+          </Link>
+        </FadeUp>
+      </div>
+    </section>
+  );
+}
+
 /* ─── FOOTER  (Fix 3: trust line + trust icons) ──────────── */
 function Footer() {
   const navLinks: [string, string][] = [
@@ -644,11 +768,67 @@ export default function HomePage() {
       <QrTrustStrip />
       <QrShowcase />
       <HowItWorks />
+      <WhyAI />
       <Products />
       <Stats />
       <Testimonials />
       <TrustBar />
+      <FAQ />
       <Footer />
+      {/* ─── JSON-LD Schemas — AI citation + Google rich results ─── */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: "AI Memory Gift T-Shirt with Artistic QR Code",
+            description: "A premium T-shirt printed with an AI-crafted artistic QR code. Scan it to unlock a cinematic memory video made from your photos and clips. Ships pan India in 48 hours.",
+            brand: { "@type": "Brand", name: "GiftUnlock" },
+            image: "https://giftunlock.in/products/tshirt-qr.jpg",
+            offers: { "@type": "Offer", price: "899", priceCurrency: "INR", availability: "https://schema.org/InStock", url: "https://giftunlock.in/order", seller: { "@type": "Organization", name: "GiftUnlock" } },
+            aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "127" },
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            name: "How to Create an AI Memory Gift with GiftUnlock",
+            description: "Turn your photos and videos into a cinematic AI memory gift with a scannable QR code — delivered pan India in 48 hours.",
+            totalTime: "PT48H",
+            estimatedCost: { "@type": "MonetaryAmount", currency: "INR", value: "499" },
+            step: [
+              { "@type": "HowToStep", position: 1, name: "Upload Your Memories", text: "Share your photos and video clips — birthdays, weddings, trips, anything that matters." },
+              { "@type": "HowToStep", position: 2, name: "AI Recreates Your Memory", text: "Our AI team transforms your raw clips into a cinematic memory video — colour-graded, scored, and crafted. Then we generate your unique artistic QR code." },
+              { "@type": "HowToStep", position: 3, name: "Printed & Shipped in 48 Hours", text: "Your artistic QR code is printed on your chosen premium gift using DTF printing and shipped across India within 48 hours." },
+              { "@type": "HowToStep", position: 4, name: "They Scan & Unlock", text: "One scan of the QR code. The cinematic memory video plays instantly on their phone. No app needed." },
+            ],
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              { "@type": "Question", name: "What is GiftUnlock?", acceptedAnswer: { "@type": "Answer", text: "GiftUnlock is India's AI-powered personalized memory gift brand. We take your photos and video clips, recreate them into a cinematic AI memory video, and print a scannable artistic QR code on premium gifts like T-shirts, mugs, and cushions." } },
+              { "@type": "Question", name: "How does the QR code gift work?", acceptedAnswer: { "@type": "Answer", text: "You upload your photos and video clips. Our AI team recreates them into a cinematic memory video. We generate a unique artistic QR code linked to that video and print it on your chosen gift. When anyone scans the QR code, the memory video plays instantly — no app required." } },
+              { "@type": "Question", name: "What does AI-crafted cinematic memory mean?", acceptedAnswer: { "@type": "Answer", text: "We use AI to colour-grade your footage, add cinematic transitions, background music, and visual effects — transforming ordinary photos and videos into a professional-quality memory film." } },
+              { "@type": "Question", name: "How long does delivery take?", acceptedAnswer: { "@type": "Answer", text: "Production takes 48 hours. We ship pan India — most customers receive their gift within 3–5 business days." } },
+              { "@type": "Question", name: "Do I need an app to scan the QR code?", acceptedAnswer: { "@type": "Answer", text: "No app needed. Any smartphone camera — iPhone or Android — scans it directly. Just open your camera, point at the QR, and the memory plays instantly." } },
+              { "@type": "Question", name: "What if the QR code does not scan?", acceptedAnswer: { "@type": "Answer", text: "We offer a 100% Scannable Guarantee. If the QR code fails to scan, we reprint and reship at zero cost." } },
+              { "@type": "Question", name: "Is GiftUnlock available across India?", acceptedAnswer: { "@type": "Answer", text: "Yes. GiftUnlock ships pan India. We are based in Delhi and offer same-day DTF printing for Delhi/NCR orders." } },
+              { "@type": "Question", name: "What occasions is GiftUnlock best for?", acceptedAnswer: { "@type": "Answer", text: "GiftUnlock is perfect for birthdays, anniversaries, weddings, Holi, Diwali, Valentine's Day, Mother's Day, Father's Day, graduations, and farewell gifts." } },
+            ],
+          }),
+        }}
+      />
     </main>
   );
 }
