@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createHmac } from "crypto";
+import { createHmac, timingSafeEqual } from "crypto";
 import { createAdminClient } from "@/lib/supabase";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
@@ -21,7 +21,13 @@ export async function POST(req: NextRequest) {
       .update(rawBody)
       .digest("hex");
 
-    if (signature !== expected) {
+    // Constant-time HMAC comparison — prevents timing oracle attacks
+    const sigBuf = Buffer.from(signature, "hex");
+    const expBuf = Buffer.from(expected,  "hex");
+    const sigValid =
+      sigBuf.length === expBuf.length && timingSafeEqual(sigBuf, expBuf);
+
+    if (!sigValid) {
       console.warn("Razorpay webhook: invalid signature");
       return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
     }

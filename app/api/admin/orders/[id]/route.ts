@@ -3,10 +3,10 @@ import { createAdminClient } from "@/lib/supabase";
 import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
 async function isAdmin(req: NextRequest): Promise<boolean> {
-  // Accept session cookie or legacy x-admin-secret header
+  // Accept session cookie or x-admin-secret header (query-param fallback removed — security)
   const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
   if (await isValidAdminToken(cookieToken)) return true;
-  const headerSecret = req.headers.get("x-admin-secret") ?? req.nextUrl.searchParams.get("secret");
+  const headerSecret = req.headers.get("x-admin-secret");
   return !!process.env.ADMIN_SECRET && headerSecret === process.env.ADMIN_SECRET;
 }
 

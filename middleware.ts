@@ -15,14 +15,16 @@ import { computeAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Only intercept /admin/* routes
-  if (!pathname.startsWith("/admin")) return NextResponse.next();
+  // Only intercept /admin/* and /api/admin/* routes
+  if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
+    return NextResponse.next();
+  }
 
   // Allow login page and auth API routes through unauthenticated
   if (
     pathname === "/admin/login" ||
-    pathname.startsWith("/api/admin/login") ||
-    pathname.startsWith("/api/admin/logout")
+    pathname === "/api/admin/login" ||
+    pathname === "/api/admin/logout"
   ) {
     return NextResponse.next();
   }
@@ -40,5 +42,11 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  /**
+   * Cover both UI routes (/admin/*) and API routes (/api/admin/*).
+   * Defence-in-depth: even if a per-route isAdmin() check is accidentally
+   * omitted, the middleware will reject unauthenticated requests first.
+   * Login and logout API routes are exempted inside the middleware function.
+   */
+  matcher: ["/admin/:path*", "/api/admin/:path*"],
 };

@@ -12,7 +12,7 @@ interface OrderInfo {
   payment_status: string;
   product_type:   string;
   tier:           string;
-  customer_name:  string;
+  // customer_name intentionally omitted — not returned by public /api/order-status (GDPR/DPDP)
   secure_slug?:   string;
   created_at?:    string;
 }
@@ -163,7 +163,6 @@ export default function TrackPage() {
 
             {/* Order details */}
             <div className="space-y-2.5 text-sm divide-y divide-white/5">
-              <Detail label="Customer"  value={order.customer_name} />
               <Detail label="Product"   value={order.product_type} />
               <Detail label="Tier"      value={order.tier} highlight />
               {order.secure_slug && (
