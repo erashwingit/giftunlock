@@ -176,7 +176,7 @@ export default async function PlayPage({ params }: Props) {
         </p>
 
         <a
-          href={`https://wa.me/919999999999?text=Hi! My GiftUnlock order ${slug.toUpperCase()} status?`}
+          href={`https://wa.me/916396151569?text=Hi! My GiftUnlock order ${slug.toUpperCase()} status?`}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-6 py-3 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02] w-full justify-center"
