@@ -119,7 +119,7 @@ function Hero() {
         </div>
         <div className="text-center space-y-5 mb-14">
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight text-white">
-            Unlock the Memory <span style={{ color: "#FFB800" }}>They Will Never Forget</span>
+            Your Memories, <span style={{ color: "#FFB800" }}>Recreated by AI.</span>{" "}Unlocked by a Scan. ❤️
           </h1>
           <p className="text-lg leading-relaxed max-w-2xl mx-auto" style={{ color: "#9B9BAA" }}>
             Turn your photos &amp; videos into a premium gift with a stunning artistic QR
