@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createHmac } from "crypto";
 import { createAdminClient } from "@/lib/supabase";
+import { sendOrderConfirmationEmail } from "@/lib/email";
 
 /**
  * POST /api/webhooks/razorpay
@@ -50,8 +51,34 @@ export async function POST(req: NextRequest) {
             .update({ payment_status: "paid" })
             .eq("razorpay_order_id", orderId);
 
-          if (error) console.error("DB update error:", error);
-          else console.log("Order marked paid:", orderId);
+          if (error) {
+            console.error("DB update error:", error);
+          } else {
+            console.log("Order marked paid:", orderId);
+
+            /* ── Fetch full order for confirmation email ── */
+            const { data: paidOrder } = await supabase
+              .from("orders")
+              .select("customer_name, customer_email, secure_slug, product_type, tier")
+              .eq("razorpay_order_id", orderId)
+              .single();
+
+            if (paidOrder?.customer_email) {
+              try {
+                await sendOrderConfirmationEmail({
+                  to:           paidOrder.customer_email,
+                  customerName: paidOrder.customer_name,
+                  secureSlug:   paidOrder.secure_slug,
+                  productType:  paidOrder.product_type,
+                  tier:         paidOrder.tier,
+                });
+                console.log("Confirmation email sent to:", paidOrder.customer_email);
+              } catch (emailErr) {
+                // Non-fatal: log but don't fail the webhook response
+                console.error("Email send failed (non-fatal):", emailErr);
+              }
+            }
+          }
         }
       }
     }
