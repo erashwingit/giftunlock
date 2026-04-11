@@ -55,7 +55,7 @@ function Navbar() {
     window.addEventListener("scroll", fn, { passive: true });
     return () => window.removeEventListener("scroll", fn);
   }, []);
-  const links: [string, string][] = [["Home", "/"], ["How It Works", "#how-it-works"], ["Products", "#products"]];
+  const links: [string, string][] = [["Home", "/"], ["How It Works", "#how-it-works"], ["Products", "#products"], ["Track Order", "/track"]];
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
       style={{ background: scrolled ? "rgba(10,10,11,0.95)" : "transparent",
@@ -84,6 +84,23 @@ function Navbar() {
         </div>
       )}
     </nav>
+  );
+}
+
+/* ─── URGENCY BANNER ─────────────────────────────────────── */
+function UrgencyBanner() {
+  const [dismissed, setDismissed] = useState(false);
+  if (dismissed) return null;
+  return (
+    <div style={{ background: "#7c3aed", color: "#ffffff", fontSize: "14px", padding: "8px 16px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
+      <span>🎉 Mother&apos;s Day is May 11 — Order by May 8 to guarantee delivery!</span>
+      <button
+        onClick={() => setDismissed(true)}
+        aria-label="Dismiss banner"
+        style={{ position: "absolute", right: 16, top: "50%", transform: "translateY(-50%)", background: "transparent", border: "none", color: "#ffffff", cursor: "pointer", fontSize: "16px", lineHeight: 1 }}>
+        ✕
+      </button>
+    </div>
   );
 }
 
@@ -138,7 +155,7 @@ function Hero() {
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/order" className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
             style={{ background: "linear-gradient(135deg,#FFD700,#FFB800,#FF9A3C)", color: "#0A0A0B", boxShadow: "0 0 32px rgba(255,184,0,0.3)" }}>
-            🎁 Create Your Gift
+            🎁 Create Your Memory Gift
           </Link>
           <a href="#how-it-works" className="flex items-center justify-center gap-2 px-8 py-4 rounded-2xl font-semibold text-base transition-all"
             style={{ border: "1px solid rgba(255,184,0,0.2)", color: "#9B9BAA" }}>▶ How It Works</a>
@@ -676,7 +693,7 @@ function Footer() {
 
           {/* Made in Delhi */}
           <div className="space-y-3">
-            <p className="text-sm font-bold text-white">❤️ Made in Delhi</p>
+            <p style={{ color: '#f59e0b', fontWeight: 700, fontSize: '16px', textShadow: '0 0 8px rgba(245,158,11,0.5)' }}>❤️ Made in Delhi</p>
             <p className="text-sm" style={{ color: "#9B9BAA" }}>✨ AI-crafted festive artistic QR (Haldi/Holi style)</p>
             <p className="text-xs leading-relaxed" style={{ color: "#555566" }}>
               Delhi/NCR same-day DTF printing by our partner · 100% Scannable Guarantee · Free reprint if QR fails
@@ -701,7 +718,7 @@ function Footer() {
           <span>© 2026 GiftUnlock · All rights reserved</span>
           <div className="flex items-center gap-4">
             <a href="https://instagram.com/giftunlock" target="_blank" rel="noopener noreferrer" className="text-lg hover:text-white transition-colors">📸</a>
-            <a href="https://wa.me/919999999999" target="_blank" rel="noopener noreferrer" className="text-lg hover:text-white transition-colors">💬</a>
+            <a href="https://wa.me/916396151569" target="_blank" rel="noopener noreferrer" className="text-lg hover:text-white transition-colors">💬</a>
           </div>
         </div>
       </div>
@@ -714,6 +731,9 @@ export default function HomePage() {
   return (
     <main className="min-h-screen text-white overflow-x-hidden" style={{ background: "#0A0A0B" }}>
       <Navbar />
+      <div className="pt-16">
+        <UrgencyBanner />
+      </div>
       <Hero />
       <SplitScreenDemo />
       <QrTrustStrip />
@@ -725,6 +745,16 @@ export default function HomePage() {
       <Testimonials />
       <TrustBar />
       <Footer />
+      {/* Floating WhatsApp Button */}
+      <a
+        href="https://wa.me/916396151569"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat on WhatsApp"
+        style={{ position: "fixed", bottom: 24, right: 24, zIndex: 9999, background: "#25D366", borderRadius: "50%", width: 56, height: 56, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 16px rgba(37,211,102,0.4)", textDecoration: "none", fontSize: 28 }}>
+        💬
+      </a>
     </main>
   );
 }
+
