@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase";
 import { notFound, redirect } from "next/navigation";
 import type { Metadata } from "next";
+import PaymentProcessingView from "./PaymentProcessingView";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -21,9 +22,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /**
  * GET /play/[slug]
  * Magic redirect — QR code destination.
- * - If video ready  → redirect to destination_video_url
- * - If paid / in production → show "coming soon" status
- * - If unpaid → redirect to home
+ * - If video ready        → redirect to destination_video_url
+ * - If paid, no video yet → show "in production" status
+ * - If pending / created  → show friendly "payment processing" page (no redirect)
+ * - If failed             → redirect to home
  */
 export default async function PlayPage({ params }: Props) {
   const { slug } = await params;
@@ -44,8 +46,13 @@ export default async function PlayPage({ params }: Props) {
     redirect(order.destination_video_url);
   }
 
-  /* ── Unpaid → home ───────────────────────────────── */
-  if (order.payment_status !== "paid") {
+  /* ── Payment pending/created → friendly waiting page ─ */
+  if (order.payment_status === "pending" || order.payment_status === "created") {
+    return <PaymentProcessingView slug={slug} />;
+  }
+
+  /* ── Payment failed → redirect home ─────────────────── */
+  if (order.payment_status === "failed") {
     redirect("/");
   }
 
