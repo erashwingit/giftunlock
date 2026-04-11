@@ -87,6 +87,113 @@ function MediaModal({ urls, onClose }: { urls: string[]; onClose: () => void }) 
   );
 }
 
+/* ── Video URL inline editor ────────────────────────────── */
+function VideoUrlEditor({
+  orderId,
+  currentUrl,
+  onSaved,
+}: {
+  orderId:    string;
+  currentUrl: string | null;
+  onSaved:    () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [value,   setValue]   = useState(currentUrl ?? "");
+  const [saving,  setSaving]  = useState(false);
+  const [err,     setErr]     = useState("");
+
+  async function save() {
+    if (!value.trim()) return;
+    setSaving(true);
+    setErr("");
+    try {
+      const res = await fetch(`/api/admin/orders/${orderId}/video-url`, {
+        method:  "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ video_url: value.trim() }),
+      });
+      if (res.ok) {
+        setEditing(false);
+        onSaved();
+      } else {
+        const j = await res.json().catch(() => ({}));
+        setErr(j.error ?? "Failed to save");
+      }
+    } catch {
+      setErr("Network error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  if (!editing) {
+    return (
+      <div className="flex items-center gap-1.5 flex-wrap">
+        {/* Status badge */}
+        {currentUrl ? (
+          <a
+            href={currentUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-2 py-0.5 rounded-full text-xs font-bold"
+            style={{ background: "rgba(34,197,94,0.12)", color: "#22c55e" }}
+          >
+            ✅ Video Ready ↗
+          </a>
+        ) : (
+          <span
+            className="px-2 py-0.5 rounded-full text-xs font-bold"
+            style={{ background: "rgba(239,68,68,0.12)", color: "#ef4444" }}
+          >
+            🔴 No Video Yet
+          </span>
+        )}
+        {/* Edit button */}
+        <button
+          onClick={() => { setValue(currentUrl ?? ""); setEditing(true); setErr(""); }}
+          className="px-2 py-0.5 rounded-lg text-[10px] font-bold transition-opacity hover:opacity-80"
+          style={{ background: "rgba(255,184,0,0.08)", color: "#FFB800", border: "1px solid rgba(255,184,0,0.15)" }}
+        >
+          ✏️ Edit
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-1.5 min-w-[200px]">
+      <input
+        type="url"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="https://youtube.com/watch?v=..."
+        className="w-full px-2.5 py-1.5 rounded-lg text-[11px] text-white outline-none"
+        style={{ background: "#0E0E14", border: "1px solid rgba(255,184,0,0.2)" }}
+        disabled={saving}
+        autoFocus
+      />
+      {err && <p className="text-[10px]" style={{ color: "#ef4444" }}>{err}</p>}
+      <div className="flex gap-1">
+        <button
+          onClick={save}
+          disabled={saving || !value.trim()}
+          className="flex-1 py-1 rounded-lg text-[11px] font-bold disabled:opacity-50"
+          style={{ background: "rgba(34,197,94,0.15)", color: "#22c55e", border: "1px solid rgba(34,197,94,0.2)" }}
+        >
+          {saving ? "…" : "✓ Save"}
+        </button>
+        <button
+          onClick={() => setEditing(false)}
+          className="px-2 py-1 rounded-lg text-[11px] font-bold"
+          style={{ background: "rgba(255,255,255,0.05)", color: "#4A4A58" }}
+        >
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
 /* ── Main page ──────────────────────────────────────────── */
 export default function AdminOrdersPage() {
   const [data,       setData]      = useState<AdminResponse | null>(null);
@@ -225,7 +332,7 @@ export default function AdminOrdersPage() {
             <tr style={{ background: "#1A1A24" }}>
               {[
                 "Order ID", "Name", "Product", "Tier",
-                "Occasion", "Promo Used", "Total", "Status", "Date", "Actions",
+                "Occasion", "Promo Used", "Total", "Status", "Video URL", "Date", "Actions",
               ].map((h) => (
                 <th
                   key={h}
@@ -297,6 +404,14 @@ export default function AdminOrdersPage() {
                     )}
                   </div>
                 </td>
+                {/* Video URL */}
+                <td className="px-4 py-3">
+                  <VideoUrlEditor
+                    orderId={order.id}
+                    currentUrl={order.destination_video_url}
+                    onSaved={() => load(page, filter)}
+                  />
+                </td>
                 {/* Date */}
                 <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#4A4A58" }}>
                   {new Date(order.created_at).toLocaleDateString("en-IN", {
@@ -350,7 +465,7 @@ export default function AdminOrdersPage() {
             ))}
             {orders.length === 0 && !loading && (
               <tr>
-                <td colSpan={10} className="px-4 py-12 text-center text-sm" style={{ color: "#252530" }}>
+                <td colSpan={11} className="px-4 py-12 text-center text-sm" style={{ color: "#252530" }}>
                   No orders found.
                 </td>
               </tr>
