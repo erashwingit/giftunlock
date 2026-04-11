@@ -9,15 +9,26 @@ import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
  * Body: { video_url: string }
  * Returns: { ok: true }
  *
- * Requires valid admin cookie.
+ * Requires valid admin cookie. Query-param secret fallback has been removed
+ * to prevent ADMIN_SECRET from appearing in server/proxy/CDN logs.
  */
 
+/** Cookie-only auth — no query-param secret fallback (security: avoids secret in logs) */
 async function isAdmin(req: NextRequest): Promise<boolean> {
   const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
   if (await isValidAdminToken(cookieToken)) return true;
-  const headerSecret =
-    req.headers.get("x-admin-secret") ?? req.nextUrl.searchParams.get("secret");
+  // Header-based fallback for server-to-server calls only (never query params)
+  const headerSecret = req.headers.get("x-admin-secret");
   return !!process.env.ADMIN_SECRET && headerSecret === process.env.ADMIN_SECRET;
+}
+
+/**
+ * Validates that a URL is a legitimate YouTube video URL.
+ * Accepts: youtube.com/watch?v=ID and youtu.be/ID formats.
+ * Rejects: javascript:, data:, internal network URLs, or arbitrary strings.
+ */
+function isValidYouTubeUrl(url: string): boolean {
+  return /^https:\/\/(www\.)?(youtube\.com\/watch\?v=|youtu\.be\/)[\w\-]{11}/.test(url);
 }
 
 interface Props {
@@ -42,6 +53,13 @@ export async function PATCH(req: NextRequest, { params }: Props) {
 
   if (!videoUrl) {
     return NextResponse.json({ error: "video_url is required" }, { status: 400 });
+  }
+
+  if (!isValidYouTubeUrl(videoUrl)) {
+    return NextResponse.json(
+      { error: "video_url must be a valid YouTube URL (youtube.com/watch?v=... or youtu.be/...)" },
+      { status: 422 }
+    );
   }
 
   const supabase = createAdminClient();

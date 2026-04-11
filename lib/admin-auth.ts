@@ -19,9 +19,31 @@ export async function computeAdminToken(): Promise<string> {
     .join("");
 }
 
+/**
+ * Constant-time string comparison using Web Crypto SHA-256.
+ * Hashing both sides before comparing ensures fixed-length output,
+ * eliminating early-exit timing leaks from direct string comparison.
+ * Edge Runtime compatible (no Node.js `crypto.timingSafeEqual` needed).
+ */
+async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+  const enc = new TextEncoder();
+  const [aHash, bHash] = await Promise.all([
+    crypto.subtle.digest("SHA-256", enc.encode(a)),
+    crypto.subtle.digest("SHA-256", enc.encode(b)),
+  ]);
+  const aBytes = new Uint8Array(aHash);
+  const bBytes = new Uint8Array(bHash);
+  let diff = 0;
+  for (let i = 0; i < aBytes.length; i++) {
+    diff |= aBytes[i] ^ bBytes[i];
+  }
+  return diff === 0;
+}
+
 /** Return true if the given cookie value matches the expected token */
 export async function isValidAdminToken(token: string | undefined): Promise<boolean> {
   if (!token) return false;
   const expected = await computeAdminToken();
-  return !!expected && token === expected;
+  if (!expected) return false;
+  return timingSafeEqual(token, expected);
 }
