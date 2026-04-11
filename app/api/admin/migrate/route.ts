@@ -64,7 +64,6 @@ export async function POST(req: NextRequest) {
   const seeds = [
     { code: "FIRST100", type: "flat"    as const, value: 100, max_uses: null, used_count: 0, active: true },
     { code: "HOLI2026", type: "percent" as const, value:  15, max_uses: null, used_count: 0, active: true },
-    { code: "SQUAD10",  type: "percent" as const, value:  10, max_uses: null, used_count: 0, active: true },
     { code: "GIFTNOW",  type: "flat"    as const, value:  50, max_uses: null, used_count: 0, active: true },
   ];
   const { error: e2 } = await supabase.from("promo_codes").upsert(seeds, { onConflict: "code", ignoreDuplicates: true });

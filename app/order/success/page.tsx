@@ -26,7 +26,7 @@ function SuccessContent() {
   const handleCopy = async () => {
     /* Build URL at click time using the real origin — never relies on
        a build-time env var that may be undefined in production. */
-    const url = `${window.location.origin}/squad/${slug}`;
+    const url = `${window.location.origin}/play/${slug}`;
     let success = false;
 
     /* Primary: modern Clipboard API (requires HTTPS — always true on giftunlock.in) */
@@ -142,7 +142,7 @@ function SuccessContent() {
           <div className="flex items-center gap-2 p-2.5 rounded-lg"
             style={{ background: "rgba(17,17,22,0.8)", border: "1px solid rgba(255,184,0,0.12)" }}>
             <span className="flex-1 font-mono text-xs truncate" style={{ color: "#FFB800" }}>
-              giftunlock.in/squad/{slug}
+              giftunlock.in/play/{slug}
             </span>
           </div>
           {/* Copy button */}

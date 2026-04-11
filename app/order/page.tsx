@@ -16,8 +16,6 @@ interface FormState {
   productSize: string;
   tier: string;
   mediaFiles: File[];
-  groupMemory: boolean;
-  groupLink: string;
   occasion: string;
   recipientName: string;
   occasionDate: string;
@@ -38,7 +36,6 @@ const INITIAL: FormState = {
   productType: "", productSize: "",
   tier: "",
   mediaFiles: [],
-  groupMemory: false, groupLink: "",
   occasion: "", recipientName: "", occasionDate: "", wishText: "", personalMessage: "",
   promoCode: "", discountAmount: 0, finalTotal: 0,
   customerName: "", customerPhone: "",
@@ -240,27 +237,11 @@ function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v
 }
 
 /* ─── Step 3: Media Upload ──────────────────────────────── */
-function Step3Media({ form, setFiles, setBool, setStr }:
-  { form: FormState; setFiles: (f: File[]) => void; setBool: (k: keyof FormState, v: boolean) => void; setStr: (k: keyof FormState, v: string) => void }) {
+function Step3Media({ form, setFiles, setStr }:
+  { form: FormState; setFiles: (f: File[]) => void; setStr: (k: keyof FormState, v: string) => void }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const [rejection, setRejection] = useState("");
-  const [linkCopied, setLinkCopied] = useState(false);
-
-  const copyLink = async (text: string) => {
-    let success = false;
-    if (window.isSecureContext && navigator.clipboard) {
-      try { await navigator.clipboard.writeText(text); success = true; } catch { /* fall through */ }
-    }
-    if (!success) {
-      const el = document.createElement("textarea");
-      el.value = text; el.style.position = "fixed"; el.style.opacity = "0";
-      document.body.appendChild(el); el.select();
-      success = document.execCommand("copy");
-      document.body.removeChild(el);
-    }
-    if (success) { setLinkCopied(true); setTimeout(() => setLinkCopied(false), 2000); }
-  };
 
   const addFiles = useCallback((incoming: FileList | null) => {
     if (!incoming) return;
@@ -395,46 +376,6 @@ function Step3Media({ form, setFiles, setBool, setStr }:
           onBlur={e => (e.target.style.borderColor = "rgba(255,184,0,0.15)")}
         />
         <p className="text-xs mt-1 text-right" style={{ color: "#4A4A58" }}>{form.personalMessage.length}/400</p>
-      </div>
-      {/* Group Memory toggle */}
-      <div className="rounded-2xl p-5 space-y-4" style={{ background: "linear-gradient(145deg,#1a1500,#111116)", border: "1px solid rgba(255,184,0,0.2)" }}>
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-bold text-white text-sm">🎬 Group Memory</p>
-            <p className="text-xs mt-0.5" style={{ color: "#9B9BAA" }}>Let friends &amp; family upload their own clips</p>
-          </div>
-          <button onClick={() => {
-            const next = !form.groupMemory;
-            setBool("groupMemory", next);
-            if (next && !form.groupLink) setStr("groupLink", `giftunlock.in/squad/${Math.random().toString(36).slice(2, 8)}`);
-          }}
-            className="relative w-12 h-6 rounded-full transition-all"
-            style={{ background: form.groupMemory ? "#FFB800" : "rgba(255,184,0,0.15)" }}>
-            <span className="absolute top-0.5 transition-all w-5 h-5 rounded-full"
-              style={{ background: "white", left: form.groupMemory ? "calc(100% - 22px)" : "2px" }} />
-          </button>
-        </div>
-        {form.groupMemory && (
-          <div className="space-y-2">
-            <p className="text-xs font-semibold" style={{ color: "#9B9BAA" }}>Your shareable squad link:</p>
-            <div className="flex items-center gap-2 p-2.5 rounded-xl"
-              style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.2)" }}>
-              <span className="text-xs font-mono flex-1 truncate" style={{ color: "#FFB800" }}>{form.groupLink}</span>
-              <button onClick={() => copyLink(form.groupLink)}
-                className="text-[10px] font-bold px-2 py-0.5 rounded shrink-0 transition-all"
-                style={{ background: linkCopied ? "#22c55e" : "#FFB800", color: "#0A0A0B" }}>
-                {linkCopied ? "Copied ✓" : "Copy"}
-              </button>
-            </div>
-            <div className="flex items-start gap-1.5 p-2.5 rounded-lg" style={{ background: "rgba(255,184,0,0.05)", border: "1px solid rgba(255,184,0,0.12)" }}>
-              <span className="text-[10px] shrink-0 mt-0.5">⚠️</span>
-              <p className="text-[10px] leading-relaxed" style={{ color: "#9B9BAA" }}>
-                <strong style={{ color: "#FFB800" }}>This link only works after you complete checkout.</strong>{" "}
-                Share it with friends &amp; family once your order is confirmed — they can upload their own clips directly.
-              </p>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
@@ -771,7 +712,7 @@ function Step6Review({ form, onPay, loading, error, setPromo }:
         {form.recipientName && <Row label="For"      value={form.recipientName} />}
         {form.occasion      && <Row label="Occasion" value={form.occasion} />}
         {form.occasionDate  && <Row label="Date"     value={form.occasionDate} />}
-        <Row label="Media files"  value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}${form.groupMemory ? " + group uploads" : ""}`} />
+        <Row label="Media files"  value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}`} />
         <Row label="Shipping to"  value={`${form.customerName}, ${form.city}, ${form.pincode}`} />
         <Row label="Phone"        value={form.customerPhone} />
 
@@ -910,7 +851,6 @@ export default function OrderPage() {
   const [fieldErrors, setFieldErrors] = useState<ShippingErrors>({});
 
   const set      = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
-  const setBool  = (k: keyof FormState, v: boolean) => setFormState(p => ({ ...p, [k]: v }));
   const setStr   = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
   const setFiles = (files: File[]) => setFormState(p => ({ ...p, mediaFiles: files }));
   const setPromo = (code: string, discount: number, final: number) =>
@@ -955,7 +895,6 @@ export default function OrderPage() {
           shippingAddress, productType: form.productType, productSize: form.productSize || null,
           tier: form.tier, occasion: occasionNote || null, mediaUrls,
           personalMessage: form.personalMessage.trim() || null,
-          groupMemory: form.groupMemory, groupLink: form.groupMemory ? form.groupLink : null,
           promoCode: form.promoCode || null }),
       });
 
@@ -997,7 +936,7 @@ export default function OrderPage() {
     switch (step) {
       case 1: return <Step1Product         form={form} set={set} />;
       case 2: return <Step2Tier            form={form} set={set} />;
-      case 3: return <Step3Media           form={form} setFiles={setFiles} setBool={setBool} setStr={setStr} />;
+      case 3: return <Step3Media           form={form} setFiles={setFiles} setStr={setStr} />;
       case 4: return <Step4Personalization form={form} set={set} />;
       case 5: return <Step5Shipping        form={form} set={set} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} />;
       case 6: return <Step6Review          form={form} onPay={handlePay} loading={loading} error={error} setPromo={setPromo} />;

@@ -80,8 +80,6 @@ export async function POST(req: NextRequest) {
       occasion,
       mediaUrls = [],
       personalMessage,
-      groupMemory,
-      groupLink,
       promoCode,
     } = body as {
       customerName:    string;
@@ -93,8 +91,6 @@ export async function POST(req: NextRequest) {
       occasion?:       string;
       mediaUrls:       string[];
       personalMessage?: string;
-      groupMemory?:    boolean;
-      groupLink?:      string;
       promoCode?:      string;
     };
 
@@ -154,8 +150,6 @@ export async function POST(req: NextRequest) {
         occasion:          occasion ?? null,
         media_urls:        mediaUrls,
         personal_message:  personalMessage ?? null,
-        group_memory:      groupMemory ?? false,
-        group_link:        groupLink ?? null,
         promo_code:        appliedCode || null,
         discount_amount:   discountAmount || null,
         final_total:       finalTotal,

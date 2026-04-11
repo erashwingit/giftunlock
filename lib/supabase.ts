@@ -32,8 +32,6 @@ export interface Order {
   occasion:              string | null;
   media_urls:            string[] | null;
   personal_message:      string | null;
-  group_memory:          boolean;
-  group_link:            string | null;
   promo_code:            string | null;
   discount_amount:       number | null;
   final_total:           number | null;

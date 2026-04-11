@@ -3,7 +3,6 @@
 export const PROMO_CODES: Record<string, { type: "flat" | "percent"; value: number }> = {
   FIRST100: { type: "flat",    value: 100 },
   HOLI2026: { type: "percent", value: 15  },
-  SQUAD10:  { type: "percent", value: 10  },
   GIFTNOW:  { type: "flat",    value: 50  },
 };
 

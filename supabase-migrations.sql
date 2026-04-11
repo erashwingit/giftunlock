@@ -22,7 +22,6 @@ INSERT INTO promo_codes (code, type, value, max_uses, used_count, active)
 VALUES
   ('FIRST100', 'flat',    100, NULL, 0, true),
   ('HOLI2026', 'percent',  15, NULL, 0, true),
-  ('SQUAD10',  'percent',  10, NULL, 0, true),
   ('GIFTNOW',  'flat',     50, NULL, 0, true)
 ON CONFLICT (code) DO NOTHING;
 
