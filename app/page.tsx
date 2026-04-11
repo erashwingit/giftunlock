@@ -426,80 +426,6 @@ function HowItWorks() {
   );
 }
 
-/* ─── GROUP MEMORY ───────────────────────────────────────── */
-function GroupMemory() {
-  const squadSteps = [
-    { num: "1", emoji: "📱", title: "You start the order",        desc: "Pick your product, occasion and delivery tier." },
-    { num: "2", emoji: "🔗", title: "Get your shareable link",    desc: "Share giftunlock.in/squad/abc123 with anyone, no app needed." },
-    { num: "3", emoji: "🎬", title: "Friends upload clips",       desc: "Everyone adds their best moments from their phones." },
-    { num: "4", emoji: "✅", title: "You approve → ships in 48hr",desc: "One cinematic video, one QR gift, one reaction they'll never forget." },
-  ];
-  const squad = ["Priya ✅", "Rohan ✅", "Anjali ✅", "Rahul ⏳", "Meera ⏳"];
-  return (
-    <section id="group-memory" className="py-24" style={{ background: "rgba(17,17,22,0.6)" }}>
-      <div className="max-w-5xl mx-auto px-4 sm:px-6">
-        <FadeUp className="text-center mb-12 space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>NEW FEATURE ✨</p>
-          <h2 className="text-4xl font-black text-white">Make It a Squad Memory 🎬</h2>
-          <p className="max-w-xl mx-auto" style={{ color: "#9B9BAA" }}>
-            Collect clips from all your friends — one video, one gift, one reaction they&apos;ll never forget.
-          </p>
-        </FadeUp>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          {squadSteps.map(({ num, emoji, title, desc }, i) => (
-            <FadeUp key={num} delay={i * 0.1}>
-              <div className="relative p-5 rounded-2xl flex flex-col gap-3 h-full"
-                style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.1)" }}>
-                <span className="absolute top-3 right-4 text-4xl font-black select-none text-white" style={{ opacity: 0.06 }}>{num}</span>
-                <span className="text-2xl">{emoji}</span>
-                <div>
-                  <p className="font-bold text-white text-sm">{title}</p>
-                  <p className="text-xs mt-1" style={{ color: "#9B9BAA" }}>{desc}</p>
-                </div>
-              </div>
-            </FadeUp>
-          ))}
-        </div>
-        <FadeUp delay={0.3}>
-          <div className="max-w-sm mx-auto p-5 rounded-2xl mb-8"
-            style={{ background: "linear-gradient(145deg,#1a1500,#111116)", border: "1px solid rgba(255,184,0,0.25)" }}>
-            <div className="flex items-center gap-2 mb-4 p-2.5 rounded-xl"
-              style={{ background: "rgba(255,184,0,0.06)", border: "1px solid rgba(255,184,0,0.15)" }}>
-              <span className="text-xs font-mono truncate" style={{ color: "#FFB800" }}>giftunlock.in/squad/abc123</span>
-              <span className="ml-auto shrink-0 text-[10px] font-bold px-2 py-0.5 rounded"
-                style={{ background: "#FFB800", color: "#0A0A0B" }}>Share</span>
-            </div>
-            <div className="space-y-2">
-              <div className="flex justify-between text-xs">
-                <span className="font-semibold text-white">3/8 friends have uploaded 🎬</span>
-                <span style={{ color: "#9B9BAA" }}>37%</span>
-              </div>
-              <div className="h-2 rounded-full" style={{ background: "rgba(255,184,0,0.1)" }}>
-                <div className="h-full rounded-full" style={{ width: "37%", background: "linear-gradient(90deg,#22c55e,#16a34a)" }} />
-              </div>
-              <div className="flex flex-wrap gap-1.5 mt-2">
-                {squad.map(n => (
-                  <span key={n} className="text-[10px] px-2 py-0.5 rounded-full" style={{
-                    background: n.includes("✅") ? "rgba(34,197,94,0.15)" : "rgba(255,184,0,0.08)",
-                    color: n.includes("✅") ? "#22c55e" : "#9B9BAA",
-                    border: `1px solid ${n.includes("✅") ? "rgba(34,197,94,0.2)" : "rgba(255,184,0,0.1)"}`,
-                  }}>{n}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </FadeUp>
-        <FadeUp delay={0.4} className="text-center space-y-3">
-          <Link href="/order" className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl font-bold text-base transition-all hover:scale-105"
-            style={{ background: "#FFB800", color: "#0A0A0B", boxShadow: "0 0 24px rgba(255,184,0,0.25)" }}>
-            🎬 Start a Group Memory →
-          </Link>
-          <p className="text-sm" style={{ color: "#FF9A3C" }}>⏰ Most group orders close in 48 hours. Don&apos;t leave anyone out.</p>
-        </FadeUp>
-      </div>
-    </section>
-  );
-}
 
 /* ─── PRODUCTS ─────────────────────────────────────────────── */
 function Products() {
@@ -633,7 +559,7 @@ function TrustBar() {
 function Footer() {
   const navLinks: [string, string][] = [
     ["Home", "/"], ["How It Works", "#how-it-works"], ["Products", "#products"],
-    ["Group Memory", "#group-memory"], ["Privacy Policy", "/privacy"],
+    ["Privacy Policy", "/privacy"],
   ];
   return (
     <footer className="py-12 border-t" style={{ borderColor: "rgba(255,184,0,0.1)", background: "rgba(10,10,11,0.99)" }}>
@@ -739,7 +665,6 @@ export default function HomePage() {
       <QrTrustStrip />
       <QrShowcase />
       <HowItWorks />
-      <GroupMemory />
       <Products />
       <Stats />
       <Testimonials />
@@ -757,4 +682,5 @@ export default function HomePage() {
     </main>
   );
 }
+
 
