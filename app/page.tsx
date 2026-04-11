@@ -113,8 +113,8 @@ function Hero() {
       <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-24 w-full">
         <div className="flex justify-center mb-8">
           <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold"
-            style={{ background: "rgba(255,184,0,0.08)", border: "1px solid rgba(255,184,0,0.25)", color: "#FFB800" }}>
-            ✨ Artistic QR · 48hr Production · Ships Across India
+            style={{ background: "rgba(245,158,11,0.08)", border: "1px solid #f59e0b", color: "#f59e0b" }}>
+            ✨ AI-Crafted · Artistic QR · Ships Pan India in 48hr
           </span>
         </div>
         <div className="text-center space-y-5 mb-14">

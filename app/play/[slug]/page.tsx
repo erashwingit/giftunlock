@@ -32,7 +32,7 @@ export default async function PlayPage({ params }: Props) {
   const { data: order } = await supabase
     .from("orders")
     .select(
-      "secure_slug, payment_status, destination_video_url, customer_name, product_type, tier, created_at"
+      "secure_slug, payment_status, destination_video_url, customer_name, product_type, tier, occasion, personal_message, created_at"
     )
     .eq("secure_slug", slug)
     .single();
@@ -92,10 +92,9 @@ export default async function PlayPage({ params }: Props) {
 
         <div className="space-y-2">
           <h1 className="text-3xl font-black">Your Memory is Being Crafted</h1>
-          <p className="text-sm" style={{ color: "#4A4A58" }}>
-            This{" "}
-            <strong className="text-white">{order.product_type}</strong> gift unlock
-            is in production. Check back soon!
+          <p className="text-sm" style={{ color: "#9B9BAA" }}>
+            Your cinematic memory is being prepared. You&apos;ll receive an email when
+            it&apos;s ready to play.
           </p>
         </div>
 
@@ -121,6 +120,20 @@ export default async function PlayPage({ params }: Props) {
               <span className="font-mono font-bold text-white text-xs">
                 {slug.toUpperCase()}
               </span>
+            </div>
+            <div className="flex justify-between">
+              <span style={{ color: "#4A4A58" }}>Recipient</span>
+              <span className="font-semibold text-white">{order.customer_name}</span>
+            </div>
+            {order.occasion && (
+              <div className="flex justify-between">
+                <span style={{ color: "#4A4A58" }}>Occasion</span>
+                <span className="font-semibold text-white">{order.occasion}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span style={{ color: "#4A4A58" }}>Gift</span>
+              <span className="font-semibold text-white">{order.product_type}</span>
             </div>
             <div className="flex justify-between">
               <span style={{ color: "#4A4A58" }}>Tier</span>
