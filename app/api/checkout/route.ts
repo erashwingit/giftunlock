@@ -15,17 +15,17 @@ const NFC_ADDON = 800;
 
 /* ── Razorpay REST helper (no SDK needed) ───────────────── */
 async function createRazorpayOrder(
-  keyId:       string,
-  keySecret:   string,
-  amountPaise: number,
-  receipt:     string,
-  notes:       Record<string, string>
+  keyId:        string,
+  keySecret:    string,
+  amountPaise:  number,
+  receipt:      string,
+  notes:        Record<string, string>
 ) {
   const credentials = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
   const res = await fetch("https://api.razorpay.com/v1/orders", {
-    method:  "POST",
+    method: "POST",
     headers: {
-      Authorization:  `Basic ${credentials}`,
+      Authorization: `Basic ${credentials}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({ amount: amountPaise, currency: "INR", receipt, notes }),
@@ -61,7 +61,6 @@ async function validatePromoFromDB(
     promo.type === "flat"
       ? Math.min(promo.value, orderTotal - 1)
       : Math.floor((orderTotal * promo.value) / 100);
-
   const finalTotal = Math.max(1, orderTotal - discount);
   return { id: promo.id, type: promo.type, value: promo.value, discount, finalTotal };
 }
@@ -73,6 +72,7 @@ export async function POST(req: NextRequest) {
     const {
       customerName,
       customerPhone,
+      customerEmail,
       shippingAddress,
       productType,
       productSize,
@@ -84,6 +84,7 @@ export async function POST(req: NextRequest) {
     } = body as {
       customerName:    string;
       customerPhone:   string;
+      customerEmail?:  string;
       shippingAddress: string;
       productType:     string;
       productSize?:    string;
@@ -99,12 +100,16 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    /* ── Optional email format check ───────────────────── */
+    if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+
     /* ── Pricing ────────────────────────────────────────── */
     const secureSlug = generateSlug(8);
-    const base       = BASE_PRICES[productType] ?? 899;
-    const subtotal   = tier === "NFC VIP" ? base + NFC_ADDON : base;
-
-    const supabase = createAdminClient();
+    const base      = BASE_PRICES[productType] ?? 899;
+    const subtotal  = tier === "NFC VIP" ? base + NFC_ADDON : base;
+    const supabase  = createAdminClient();
 
     /* ── Server-side promo verification (from DB) ───────── */
     let discountAmount = 0;
@@ -139,8 +144,8 @@ export async function POST(req: NextRequest) {
     }
 
     /* ── Dev bypass when keys are placeholders ─────────── */
-    const isDevBypass     = process.env.RAZORPAY_KEY_ID === "rzp_test_PLACEHOLDER";
-    let razorpayOrderId   = `mock_${secureSlug}`;
+    const isDevBypass = process.env.RAZORPAY_KEY_ID === "rzp_test_PLACEHOLDER";
+    let razorpayOrderId = `mock_${secureSlug}`;
 
     if (!isDevBypass) {
       const rzpOrder = await createRazorpayOrder(
@@ -157,21 +162,22 @@ export async function POST(req: NextRequest) {
     const { data: order, error: dbError } = await supabase
       .from("orders")
       .insert({
-        customer_name:     customerName,
-        customer_phone:    customerPhone,
-        shipping_address:  shippingAddress,
-        product_type:      productType,
-        product_size:      productSize ?? null,
+        customer_name:    customerName,
+        customer_phone:   customerPhone,
+        customer_email:   customerEmail?.trim() ?? null,
+        shipping_address: shippingAddress,
+        product_type:     productType,
+        product_size:     productSize ?? null,
         tier,
-        occasion:          occasion ?? null,
-        media_urls:        mediaUrls,
-        personal_message:  personalMessage ?? null,
-        promo_code:        appliedCode || null,
-        discount_amount:   discountAmount || null,
-        final_total:       finalTotal,
-        secure_slug:       secureSlug,
-        payment_status:    isDevBypass ? "paid" : "pending",
-        order_status:      "pending",
+        occasion:         occasion ?? null,
+        media_urls:       mediaUrls,
+        personal_message: personalMessage ?? null,
+        promo_code:       appliedCode || null,
+        discount_amount:  discountAmount || null,
+        final_total:      finalTotal,
+        secure_slug:      secureSlug,
+        payment_status:   isDevBypass ? "paid" : "pending",
+        order_status:     "pending",
         razorpay_order_id: razorpayOrderId,
       })
       .select("id")
@@ -191,12 +197,12 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      orderId:   razorpayOrderId,
-      amount:    finalTotal * 100,
-      currency:  "INR",
+      orderId:    razorpayOrderId,
+      amount:     finalTotal * 100,
+      currency:   "INR",
       secureSlug,
-      dbOrderId: order.id,
-      bypass:    isDevBypass,
+      dbOrderId:  order.id,
+      bypass:     isDevBypass,
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
