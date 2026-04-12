@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase";
 import type { PromoResult } from "@/lib/promo";
+
+/** Zod schema — validate and sanitise promo application input */
+const ApplyPromoSchema = z.object({
+  code:       z.string().min(1).max(50).trim(),
+  // Order total in ₹; must be a positive integer
+  orderTotal: z.number().int().positive().max(1_000_000),
+});
 
 /**
  * POST /api/apply-promo
@@ -13,14 +21,14 @@ import type { PromoResult } from "@/lib/promo";
  */
 export async function POST(req: NextRequest) {
   try {
-    const { code, orderTotal } = (await req.json()) as {
-      code: string;
-      orderTotal: number;
-    };
+    const rawBody = await req.json();
 
-    if (!code || typeof orderTotal !== "number" || orderTotal < 1) {
+    const parsed = ApplyPromoSchema.safeParse(rawBody);
+    if (!parsed.success) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
     }
+
+    const { code, orderTotal } = parsed.data;
 
     const supabase = createAdminClient();
     const { data: promo, error } = await supabase

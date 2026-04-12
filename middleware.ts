@@ -7,13 +7,26 @@
  *
  * Protected routes: all /admin/* paths except /admin/login,
  * /api/admin/login, and /api/admin/logout.
+ *
+ * Security hardening:
+ * - CVE-2025-29927 mitigation: blocks forged x-middleware-subrequest headers
+ *   that could be used to bypass middleware authentication in Next.js.
+ * - Timing-safe token comparison via isValidAdminToken (double-SHA-256).
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { computeAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ── CVE-2025-29927 mitigation ────────────────────────────────────────────
+  // Block any request that injects the internal Next.js subrequest header.
+  // Forging this header can allow attackers to bypass middleware in affected
+  // Next.js versions. Strip it unconditionally at the edge.
+  if (request.headers.has("x-middleware-subrequest")) {
+    return new NextResponse(null, { status: 403 });
+  }
 
   // Only intercept /admin/* and /api/admin/* routes
   if (!pathname.startsWith("/admin") && !pathname.startsWith("/api/admin")) {
@@ -29,11 +42,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Validate the session cookie against the expected HMAC-derived token
-  const token    = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
-  const expected = await computeAdminToken();
+  // Validate the session cookie using timing-safe HMAC comparison
+  const token = request.cookies.get(ADMIN_COOKIE_NAME)?.value;
 
-  if (!token || !expected || token !== expected) {
+  if (!(await isValidAdminToken(token))) {
     const loginUrl = new URL("/admin/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

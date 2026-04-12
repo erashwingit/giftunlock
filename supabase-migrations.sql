@@ -49,9 +49,34 @@ END;
 $$;
 
 -- ------------------------------------------------------------
--- 4. (Optional) RLS policies for promo_codes
---    Service-role key bypasses RLS, so these are informational.
+-- 4. RLS policies — restrict direct table access
+--    The application uses the service-role key (bypasses RLS) from
+--    server-side API routes only. RLS acts as a defence-in-depth layer
+--    to block any accidental anon/authenticated key exposure.
 -- ------------------------------------------------------------
--- ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
--- CREATE POLICY "service role only" ON promo_codes
---   USING (auth.role() = 'service_role');
+
+-- promo_codes: only the service role may read or write
+ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service role only — promo_codes" ON promo_codes;
+CREATE POLICY "service role only — promo_codes" ON promo_codes
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- orders: only the service role may read or write
+-- NOTE: if you add Supabase Auth user sign-in in future, update these
+--       policies to allow auth.uid() = user_id for user-owned rows.
+ALTER TABLE orders ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service role only — orders" ON orders;
+CREATE POLICY "service role only — orders" ON orders
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');
+
+-- admin_login_attempts: only the service role may read or write
+ALTER TABLE admin_login_attempts ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "service role only — admin_login_attempts" ON admin_login_attempts;
+CREATE POLICY "service role only — admin_login_attempts" ON admin_login_attempts
+  USING (auth.role() = 'service_role')
+  WITH CHECK (auth.role() = 'service_role');

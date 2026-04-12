@@ -6,7 +6,14 @@
  *
  * Sender domain `giftunlock.in` must be verified in the Resend dashboard.
  * FROM address: orders@giftunlock.in
+ *
+ * Security: `server-only` guard throws a build-time error if this module is
+ * accidentally imported by a Client Component, preventing RESEND_API_KEY
+ * from being bundled into the browser bundle.
  */
+
+// This import causes a build error if accidentally bundled client-side
+import "server-only";
 
 import { Resend } from "resend";
 

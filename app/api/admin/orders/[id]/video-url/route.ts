@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
-import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { isValidAdminToken, timingSafeEqual, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
 /**
  * PATCH /api/admin/orders/[id]/video-url
@@ -13,13 +13,16 @@ import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
  * to prevent ADMIN_SECRET from appearing in server/proxy/CDN logs.
  */
 
-/** Cookie-only auth — no query-param secret fallback (security: avoids secret in logs) */
+/** Cookie-only auth with timing-safe header fallback for server-to-server calls */
 async function isAdmin(req: NextRequest): Promise<boolean> {
   const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
   if (await isValidAdminToken(cookieToken)) return true;
-  // Header-based fallback for server-to-server calls only (never query params)
+
   const headerSecret = req.headers.get("x-admin-secret");
-  return !!process.env.ADMIN_SECRET && headerSecret === process.env.ADMIN_SECRET;
+  const envSecret    = process.env.ADMIN_SECRET;
+  if (!headerSecret || !envSecret) return false;
+
+  return timingSafeEqual(headerSecret, envSecret);
 }
 
 /**

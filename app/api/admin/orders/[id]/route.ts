@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
-import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { isValidAdminToken, timingSafeEqual, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
+/**
+ * Verify admin identity via session cookie or x-admin-secret header.
+ * Uses timing-safe comparison for the header to prevent timing-oracle attacks.
+ */
 async function isAdmin(req: NextRequest): Promise<boolean> {
-  // Accept session cookie or x-admin-secret header (query-param fallback removed — security)
   const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
   if (await isValidAdminToken(cookieToken)) return true;
+
   const headerSecret = req.headers.get("x-admin-secret");
-  return !!process.env.ADMIN_SECRET && headerSecret === process.env.ADMIN_SECRET;
+  const envSecret    = process.env.ADMIN_SECRET;
+  if (!headerSecret || !envSecret) return false;
+
+  return timingSafeEqual(headerSecret, envSecret);
 }
 
 interface Props {
