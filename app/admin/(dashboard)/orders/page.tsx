@@ -217,6 +217,22 @@ export default function AdminOrdersPage() {
 
   useEffect(() => { load(page, filter); }, [page, filter, load]);
 
+  async function markPaid(id: string) {
+    setActionMsg("Marking as paid…");
+    const res = await fetch(`/api/admin/orders/${id}`, {
+      method:  "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify({ payment_status: "paid" }),
+    });
+    if (res.ok) {
+      setActionMsg("✓ Marked as paid");
+      load(page, filter);
+    } else {
+      setActionMsg("Failed to update order");
+    }
+    setTimeout(() => setActionMsg(""), 3000);
+  }
+
   async function markFulfilled(id: string) {
     setActionMsg("Marking fulfilled…");
     const res = await fetch(`/api/admin/orders/${id}`, {
@@ -445,6 +461,19 @@ export default function AdminOrdersPage() {
                       }}
                     >
                       🗑 Del Media
+                    </button>
+                    {/* Mark as Paid (manual override for stuck pending orders) */}
+                    <button
+                      onClick={() => markPaid(order.id)}
+                      disabled={order.payment_status === "paid"}
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-opacity hover:opacity-80 disabled:opacity-30 whitespace-nowrap"
+                      style={{
+                        background: "rgba(34,197,94,0.08)",
+                        color:      "#22c55e",
+                        border:     "1px solid rgba(34,197,94,0.15)",
+                      }}
+                    >
+                      💳 Mark Paid
                     </button>
                     {/* Mark Fulfilled */}
                     <button

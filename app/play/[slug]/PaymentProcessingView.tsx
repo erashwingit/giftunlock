@@ -1,8 +1,11 @@
 "use client";
 
+import { useEffect, useRef } from "react";
+
 /**
  * PaymentProcessingView — shown when order payment_status is 'pending' or 'created'.
- * Replaces the previous redirect("/") behaviour with a friendly waiting page.
+ * Auto-polls /api/payment-status/[slug] every 5 seconds and reloads the page
+ * once payment is confirmed, which triggers the play page to redirect to the video.
  */
 
 interface Props {
@@ -10,6 +13,54 @@ interface Props {
 }
 
 export default function PaymentProcessingView({ slug }: Props) {
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    let attempts = 0;
+    const MAX_ATTEMPTS = 60; // Poll for up to 5 minutes (60 × 5s)
+
+    async function checkStatus() {
+      try {
+        const res = await fetch(`/api/payment-status/${slug}`, { cache: "no-store" });
+        if (!res.ok) return;
+
+        const data = await res.json();
+
+        // Payment confirmed — reload so play page re-evaluates and redirects to video
+        if (data.payment_status === "paid") {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          window.location.reload();
+          return;
+        }
+
+        // Failed — redirect home
+        if (data.payment_status === "failed") {
+          if (intervalRef.current) clearInterval(intervalRef.current);
+          window.location.href = "/";
+          return;
+        }
+      } catch {
+        // Network error — keep polling silently
+      }
+
+      attempts++;
+      if (attempts >= MAX_ATTEMPTS && intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    }
+
+    // Start polling after 3 seconds (give Razorpay webhook time to fire)
+    const timeout = setTimeout(() => {
+      checkStatus(); // immediate first check
+      intervalRef.current = setInterval(checkStatus, 5000);
+    }, 3000);
+
+    return () => {
+      clearTimeout(timeout);
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [slug]);
+
   return (
     <main
       className="min-h-screen text-white flex flex-col items-center justify-center px-4 py-16"
@@ -47,9 +98,19 @@ export default function PaymentProcessingView({ slug }: Props) {
             <span style={{ color: "#FFB800" }}>1–2 minutes</span>.
           </p>
           <p className="text-sm leading-relaxed" style={{ color: "#9B9BAA" }}>
-            Your gift link will work shortly. If this persists after 5 minutes,
-            contact us on WhatsApp.
+            This page will update automatically once confirmed.
           </p>
+        </div>
+
+        {/* Animated pulse indicator */}
+        <div className="flex items-center justify-center gap-2">
+          <div
+            className="w-2 h-2 rounded-full animate-pulse"
+            style={{ background: "#FFB800" }}
+          />
+          <span className="text-xs font-mono" style={{ color: "#4A4A58" }}>
+            Checking payment status…
+          </span>
         </div>
 
         {/* Order ID pill */}
@@ -60,10 +121,6 @@ export default function PaymentProcessingView({ slug }: Props) {
             border: "1px solid rgba(255,184,0,0.15)",
           }}
         >
-          <div
-            className="w-2 h-2 rounded-full animate-pulse"
-            style={{ background: "#FFB800" }}
-          />
           <span className="font-mono text-xs font-bold" style={{ color: "#FFB800" }}>
             {slug.toUpperCase()}
           </span>
@@ -71,7 +128,6 @@ export default function PaymentProcessingView({ slug }: Props) {
 
         {/* Action buttons */}
         <div className="flex flex-col gap-3">
-          {/* Refresh */}
           <button
             onClick={() => window.location.reload()}
             className="w-full py-3.5 rounded-2xl text-sm font-black transition-all hover:scale-[1.02]"
@@ -83,7 +139,6 @@ export default function PaymentProcessingView({ slug }: Props) {
             🔄 Refresh Page
           </button>
 
-          {/* WhatsApp */}
           <a
             href={`https://wa.me/916396151569?text=Hi! My payment for GiftUnlock order ${slug.toUpperCase()} is pending. Please help.`}
             target="_blank"
