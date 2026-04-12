@@ -8,7 +8,7 @@ import { sendOrderConfirmationEmail } from "@/lib/email";
  * Verifies Razorpay HMAC signature and updates payment_status to 'paid'.
  * Configure this URL in Razorpay Dashboard → Webhooks:
  *   https://giftunlock.in/api/webhooks/razorpay
- * Secret: same as RAZORPAY_KEY_SECRET
+ * Secret: use RAZORPAY_WEBHOOK_SECRET (set in Razorpay Dashboard → Webhooks, NOT the same as RAZORPAY_KEY_SECRET)
  */
 export async function POST(req: NextRequest) {
   try {
@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
     const signature = req.headers.get("x-razorpay-signature") ?? "";
 
     /* ── Verify HMAC signature ───────────────────────── */
-    const secret = process.env.RAZORPAY_KEY_SECRET!;
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET!;
     const expected = createHmac("sha256", secret)
       .update(rawBody)
       .digest("hex");
