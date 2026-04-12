@@ -597,7 +597,7 @@ function Footer() {
           <div className="space-y-3">
             <p className="text-xs font-semibold text-white uppercase tracking-wider">Product</p>
             <div className="space-y-2">
-              {[["Order Now", "/order"], ["How It Works", "#how-it-works"], ["Products", "#products"], ["Pricing", "#pricing"]].map(
+              {[["Order Now", "/order"], ["How It Works", "#how-it-works"], ["Products", "#products"], ["Pricing", "#products"]].map(
                 ([label, href]) => (
                   <a key={label} href={href} className="block text-sm hover:text-white transition-colors" style={{ color: "#4A4A58" }}>
                     {label}
