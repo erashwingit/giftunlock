@@ -13,13 +13,15 @@ const CheckoutSchema = z.object({
   customerPhone:   z.string().min(7).max(20).trim(),
   shippingAddress: z.string().min(5).max(500).trim(),
   productType:     z.enum(ALLOWED_PRODUCTS),
-  productSize:     z.string().max(20).trim().optional(),
+  // .nullish() accepts string | null | undefined — frontend sends null when empty
+  productSize:     z.string().max(20).trim().nullish(),
   tier:            z.enum(["QR Classic", "NFC VIP"]),
-  occasion:        z.string().max(100).trim().optional(),
-  // Max 20 HTTPS URLs, each ≤ 1000 chars
-  mediaUrls:       z.array(z.string().url().max(1000)).max(20).default([]),
-  personalMessage: z.string().max(1000).trim().optional(),
-  promoCode:       z.string().max(50).trim().optional(),
+  // occasion is a concatenated string (occasion | date | recipient | wish) — up to 500 chars
+  occasion:        z.string().max(500).trim().nullish(),
+  // Max 20 HTTPS URLs, each ≤ 2000 chars (Supabase public URLs can be long)
+  mediaUrls:       z.array(z.string().url().max(2000)).max(20).default([]),
+  personalMessage: z.string().max(1000).trim().nullish(),
+  promoCode:       z.string().max(50).trim().nullish(),
 });
 
 /* ── Product base prices (₹) ────────────────────────────── */
