@@ -6,7 +6,7 @@ import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, X, Lock,
-  Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone,
+  Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone, Mail,
   AlertCircle, Loader2, Shield, Calendar,
 } from "lucide-react";
 
@@ -502,6 +502,11 @@ const SHIP_VALIDATORS: Record<string, (v: string) => string> = {
     const normalized = v.replace(/^\+?91[\s\-]?/, "").replace(/[\s\-]/g, "");
     if (!/^[6-9][0-9]{9}$/.test(normalized))
       return "Enter a valid 10-digit Indian mobile number";
+    return "";
+  },
+  customerEmail: (v) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(v.trim())) return "Enter a valid email address";
     return "";
   },
   addressLine1: (v) => {
