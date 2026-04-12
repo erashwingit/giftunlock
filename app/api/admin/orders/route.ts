@@ -1,15 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
-import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
+import { isValidAdminToken, timingSafeEqual, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 
-/** Verify session cookie, header, or query-param */
+/**
+ * Verify admin identity via session cookie or x-admin-secret header.
+ * Uses timing-safe comparison for the header to prevent timing-oracle attacks.
+ * NOTE: query-param fallback removed — passing secrets in URLs is insecure
+ * (logged by proxies, browsers, and server access logs).
+ */
 async function isAdmin(req: NextRequest): Promise<boolean> {
   const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
   if (await isValidAdminToken(cookieToken)) return true;
-  const secret =
-    req.headers.get("x-admin-secret") ??
-    req.nextUrl.searchParams.get("secret");
-  return !!process.env.ADMIN_SECRET && secret === process.env.ADMIN_SECRET;
+
+  const headerSecret = req.headers.get("x-admin-secret");
+  const envSecret    = process.env.ADMIN_SECRET;
+  if (!headerSecret || !envSecret) return false;
+
+  // Timing-safe comparison prevents brute-force timing attacks on the secret
+  return timingSafeEqual(headerSecret, envSecret);
 }
 
 /**

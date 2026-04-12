@@ -24,8 +24,11 @@ export async function computeAdminToken(): Promise<string> {
  * Hashing both sides before comparing ensures fixed-length output,
  * eliminating early-exit timing leaks from direct string comparison.
  * Edge Runtime compatible (no Node.js `crypto.timingSafeEqual` needed).
+ *
+ * Exported so API route handlers can reuse it when comparing the
+ * x-admin-secret header against ADMIN_SECRET (prevents timing-oracle attacks).
  */
-async function timingSafeEqual(a: string, b: string): Promise<boolean> {
+export async function timingSafeEqual(a: string, b: string): Promise<boolean> {
   const enc = new TextEncoder();
   const [aHash, bHash] = await Promise.all([
     crypto.subtle.digest("SHA-256", enc.encode(a)),

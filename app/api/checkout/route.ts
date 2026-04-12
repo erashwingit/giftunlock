@@ -1,6 +1,26 @@
 import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase";
 import { generateSlug } from "@/lib/utils";
+
+/* ── Zod schema — validates and sanitises all checkout inputs ── */
+const ALLOWED_PRODUCTS = [
+  "T-Shirt", "Beer Mug", "Cushion", "Coffee Mug", "Water Bottle", "Face Mask",
+] as const;
+
+const CheckoutSchema = z.object({
+  customerName:    z.string().min(1).max(100).trim(),
+  customerPhone:   z.string().min(7).max(20).trim(),
+  shippingAddress: z.string().min(5).max(500).trim(),
+  productType:     z.enum(ALLOWED_PRODUCTS),
+  productSize:     z.string().max(20).trim().optional(),
+  tier:            z.enum(["QR Classic", "NFC VIP"]),
+  occasion:        z.string().max(100).trim().optional(),
+  // Max 20 HTTPS URLs, each ≤ 1000 chars
+  mediaUrls:       z.array(z.string().url().max(1000)).max(20).default([]),
+  personalMessage: z.string().max(1000).trim().optional(),
+  promoCode:       z.string().max(50).trim().optional(),
+});
 
 /* ── Product base prices (₹) ────────────────────────────── */
 const BASE_PRICES: Record<string, number> = {
@@ -69,7 +89,17 @@ async function validatePromoFromDB(
 /** POST /api/checkout */
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const rawBody = await req.json();
+
+    /* ── Zod validation — rejects malformed / oversized input ── */
+    const parsed = CheckoutSchema.safeParse(rawBody);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: "Invalid request", details: parsed.error.flatten().fieldErrors },
+        { status: 400 }
+      );
+    }
+
     const {
       customerName,
       customerPhone,
@@ -78,26 +108,10 @@ export async function POST(req: NextRequest) {
       productSize,
       tier,
       occasion,
-      mediaUrls = [],
+      mediaUrls,
       personalMessage,
       promoCode,
-    } = body as {
-      customerName:    string;
-      customerPhone:   string;
-      shippingAddress: string;
-      productType:     string;
-      productSize?:    string;
-      tier:            string;
-      occasion?:       string;
-      mediaUrls:       string[];
-      personalMessage?: string;
-      promoCode?:      string;
-    };
-
-    /* ── Validate ──────────────────────────────────────── */
-    if (!customerName || !customerPhone || !shippingAddress || !productType || !tier) {
-      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-    }
+    } = parsed.data;
 
     /* ── Pricing ────────────────────────────────────────── */
     const secureSlug = generateSlug(8);
