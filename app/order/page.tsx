@@ -531,7 +531,7 @@ const SHIP_VALIDATORS: Record<string, (v: string) => string> = {
 export type ShippingErrors = Partial<Record<keyof FormState, string>>;
 
 export function validateShippingFields(form: FormState): ShippingErrors {
-  const keys = ["customerName", "customerPhone", "addressLine1", "city", "state", "pincode"] as const;
+  const keys = ["customerName", "customerPhone", "customerEmail", "addressLine1", "city", "state", "pincode"] as const;
   const errors: ShippingErrors = {};
   for (const key of keys) {
     const msg = SHIP_VALIDATORS[key]?.(form[key] as string) ?? "";
@@ -606,6 +606,10 @@ function Step5Shipping({ form, set, fieldErrors, setFieldErrors }:
           type="tel" inputMode="numeric"
           icon={Phone} value={form.customerPhone} error={fieldErrors.customerPhone}
           onChange={v => set("customerPhone", v)} onBlur={() => blurValidate("customerPhone")} />
+        <ShippingField label="Email Address" placeholder="your.email@example.com"
+          type="email"
+          icon={Mail} value={form.customerEmail} error={fieldErrors.customerEmail}
+          onChange={v => set("customerEmail", v)} onBlur={() => blurValidate("customerEmail")} />
       </div>
       <ShippingField label="Address Line 1" placeholder="Flat no, Street, Locality, Area"
         icon={MapPin} value={form.addressLine1} error={fieldErrors.addressLine1}
@@ -898,6 +902,7 @@ export default function OrderPage() {
       const res = await fetch("/api/checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customerName: form.customerName, customerPhone: form.customerPhone,
+          customerEmail: form.customerEmail,
           shippingAddress, productType: form.productType, productSize: form.productSize || null,
           tier: form.tier, occasion: occasionNote || null, mediaUrls,
           personalMessage: form.personalMessage.trim() || null,
