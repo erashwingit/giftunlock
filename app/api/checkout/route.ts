@@ -122,6 +122,22 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    /* ── Guard: ensure required env vars are present ────── */
+    if (!process.env.RAZORPAY_KEY_ID || !process.env.RAZORPAY_KEY_SECRET) {
+      console.error("Checkout error: RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET not set");
+      return NextResponse.json(
+        { error: "Payment gateway not configured. Contact support." },
+        { status: 500 }
+      );
+    }
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.error("Checkout error: SUPABASE_SERVICE_ROLE_KEY not set");
+      return NextResponse.json(
+        { error: "Database not configured. Contact support." },
+        { status: 500 }
+      );
+    }
+
     /* ── Dev bypass when keys are placeholders ─────────── */
     const isDevBypass     = process.env.RAZORPAY_KEY_ID === "rzp_test_PLACEHOLDER";
     let razorpayOrderId   = `mock_${secureSlug}`;
@@ -183,7 +199,11 @@ export async function POST(req: NextRequest) {
       bypass:    isDevBypass,
     });
   } catch (err) {
-    console.error("Checkout error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Checkout error:", message);
+    return NextResponse.json(
+      { error: "Checkout failed", detail: message },
+      { status: 500 }
+    );
   }
 }
