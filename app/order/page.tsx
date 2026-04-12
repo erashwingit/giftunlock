@@ -26,6 +26,7 @@ interface FormState {
   finalTotal: number;
   customerName: string;
   customerPhone: string;
+  customerEmail: string;
   addressLine1: string;
   city: string;
   state: string;
@@ -42,7 +43,7 @@ const INITIAL: FormState = {
   addressLine1: "", city: "", state: "", pincode: "",
 };
 
-/* ─── Pricing ───────────────────────────────────────────── */
+/* ─── Pricing ─────────────────────── customerEmail: "",────────────────────── */
 const BASE_PRICES: Record<string, number> = {
   "T-Shirt": 899, "Beer Mug": 799, Cushion: 699,
   "Coffee Mug": 699, "Water Bottle": 899, "Face Mask": 499,
