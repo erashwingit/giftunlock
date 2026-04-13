@@ -39,7 +39,7 @@ const INITIAL: FormState = {
   mediaFiles: [],
   occasion: "", recipientName: "", occasionDate: "", wishText: "", personalMessage: "",
   promoCode: "", discountAmount: 0, finalTotal: 0,
-  customerName: "", customerPhone: ""
+  customerName: "", customerPhone: "",
   customerEmail: "",
   addressLine1: "", city: "", state: "", pincode: "",
 };
