@@ -3,6 +3,8 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { createAdminClient } from "@/lib/supabase";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 
+export const dynamic = "force-dynamic";
+
 /**
  * POST /api/webhooks/razorpay
  * Verifies Razorpay HMAC signature and updates payment_status to 'paid'.

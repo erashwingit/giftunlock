@@ -11,7 +11,13 @@
 import { Resend } from "resend";
 import { WHATSAPP_NUMBER, SITE_URL } from "./constants";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+function getResendClient(): Resend | null {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) {
+    return null;
+  }
+  return new Resend(key);
+}
 
 const FROM = "GiftUnlock <orders@giftunlock.in>";
 
@@ -160,6 +166,12 @@ export async function sendOrderConfirmationEmail(
 </body>
 </html>
   `.trim();
+
+  const resend = getResendClient();
+  if (!resend) {
+    console.warn("sendOrderConfirmationEmail: RESEND_API_KEY is not set. Skipping email notification.");
+    return;
+  }
 
   const { error } = await resend.emails.send({
     from:    FROM,

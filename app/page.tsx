@@ -450,6 +450,64 @@ function HowItWorks() {
 }
 
 
+/* ─── WHY AI ──────────────────────────────────────────────── */
+function WhyAI() {
+  const cards = [
+    {
+      icon: "🎬",
+      title: "Cinematic AI Recreation",
+      desc: "We use AI to colour-grade your footage, add transitions, background music, and visual effects — turning ordinary clips into a movie-quality memory film.",
+    },
+    {
+      icon: "🎨",
+      title: "Artistic QR Code Design",
+      desc: "Your QR code isn't a boring black-and-white grid. It's a full-surface artwork — Holi colours, Haldi textures, festive patterns — designed to look stunning even before it's scanned.",
+    },
+    {
+      icon: "📱",
+      title: "Instant Scan, No App",
+      desc: "Any phone camera scans it instantly. No app download. No login. Just point and watch the memory play.",
+    },
+    {
+      icon: "♾️",
+      title: "Lifetime Video Hosting",
+      desc: "Your memory video is hosted forever. The QR code never expires. The gift keeps working years from now.",
+    },
+  ];
+  return (
+    <section className="py-24" style={{ background: "#080810" }}>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        <FadeUp className="text-center mb-16 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>
+            Not Just a Photo Print
+          </p>
+          <h2 className="text-4xl font-black text-white">
+            We Don&apos;t Just Print Your Photos.{" "}
+            <span style={{ color: "#FFB800" }}>We Recreate Them.</span>
+          </h2>
+          <p className="max-w-xl mx-auto" style={{ color: "#9B9BAA" }}>
+            AI-crafted cinematic memories that make ChatGPT, Google, and your recipients stop scrolling.
+          </p>
+        </FadeUp>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {cards.map(({ icon, title, desc }, i) => (
+            <FadeUp key={title} delay={i * 0.1}>
+              <div
+                className="p-6 rounded-2xl h-full flex flex-col gap-4 transition-transform hover:scale-[1.02]"
+                style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.1)" }}
+              >
+                <div className="text-3xl">{icon}</div>
+                <h3 className="font-bold text-white text-sm">{title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "#9B9BAA" }}>{desc}</p>
+              </div>
+            </FadeUp>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── PRODUCTS ─────────────────────────────────────────────── */
 function Products() {
   const products = [
@@ -543,6 +601,56 @@ function Testimonials() {
                     <p className="text-xs" style={{ color: "#9B9BAA" }}>{city}</p>
                   </div>
                 </div>
+              </div>
+            </FadeUp>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── FAQ ─────────────────────────────────────────────────── */
+function FAQ() {
+  const faqs = [
+    {
+      q: "What does 'AI-crafted cinematic memory' mean?",
+      a: "We don't just stitch your clips together. Our AI team colour-grades your footage, adds cinematic transitions, background music, and visual effects — transforming ordinary photos and videos into a professional-quality memory film.",
+    },
+    {
+      q: "Do I need an app to scan the QR code?",
+      a: "No app needed. Any smartphone camera — iPhone or Android — scans it directly. Just open your camera, point at the QR, and the memory plays instantly.",
+    },
+    {
+      q: "How long does delivery take?",
+      a: "Production takes 48 hours from the time you submit your media. We ship pan India — most customers receive their gift within 3–5 business days.",
+    },
+    {
+      q: "What if the QR code doesn't scan?",
+      a: "We offer a 100% Scannable Guarantee. If the QR code on your product fails to scan for any reason, we reprint and reship at zero cost to you.",
+    },
+    {
+      q: "What occasions is this best for?",
+      a: "Birthdays, anniversaries, weddings, Holi, Diwali, Valentine's Day, Mother's Day, Father's Day, graduations, farewells — any moment worth remembering.",
+    },
+    {
+      q: "Is GiftUnlock available across India?",
+      a: "Yes. We ship pan India. Based in Delhi, we offer same-day DTF printing for Delhi/NCR orders. All other cities receive orders within 3–5 business days via courier.",
+    },
+  ];
+  return (
+    <section className="py-24" style={{ background: "#0A0A0B" }}>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6">
+        <FadeUp className="text-center mb-16 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>Got Questions?</p>
+          <h2 className="text-4xl font-black text-white">Frequently Asked <span style={{ color: "#FFB800" }}>Questions</span></h2>
+        </FadeUp>
+        <div className="space-y-4">
+          {faqs.map(({ q, a }, i) => (
+            <FadeUp key={q} delay={i * 0.07}>
+              <div className="p-6 rounded-2xl space-y-2" style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.1)" }}>
+                <h3 className="font-bold text-white text-base">{q}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "#9B9BAA" }}>{a}</p>
               </div>
             </FadeUp>
           ))}
@@ -716,9 +824,11 @@ export default function HomePage() {
       <QrTrustStrip />
       <QrShowcase />
       <HowItWorks />
+      <WhyAI />
       <Products />
       <Stats />
       <Testimonials />
+      <FAQ />
       <TrustBar />
       <Footer />
       {/* Floating WhatsApp Button */}
