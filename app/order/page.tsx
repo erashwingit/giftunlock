@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
 import { analytics } from "@/lib/analytics";
+import { DEFAULT_PRODUCTS, ProductItem } from "@/lib/products";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, X, Lock,
   Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone,
@@ -123,15 +124,32 @@ const card = (sel = false) => ({
   boxShadow: sel ? "0 0 20px rgba(255,184,0,0.15)" : "none",
 });
 
+const PRODUCT_IMAGES: Record<string, string> = {
+  "T-Shirt": "/products/t-shirt.jpg",
+  "Beer Mug": "/products/beer-mug.jpg",
+  "Coffee Mug": "/products/coffee-mug.jpg",
+  "Cushion": "/products/cushion.jpg",
+  "Water Bottle": "/products/water-bottle.jpg",
+  "Face Mask": "/products/face-mask.jpg",
+};
+
 /* ─── Step 1: Product ───────────────────────────────────── */
-function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState, v: string) => void }) {
+function Step1Product({
+  form,
+  set,
+  customImages,
+}: {
+  form: FormState;
+  set: (k: keyof FormState, v: string) => void;
+  customImages?: Record<string, string>;
+}) {
   const products = [
-    { id: "T-Shirt",      desc: "Unisex 180 GSM cotton" },
-    { id: "Beer Mug",     desc: "11oz ceramic mug" },
-    { id: "Cushion",      desc: "30×30 cm with insert" },
-    { id: "Coffee Mug",   desc: "11oz ceramic mug" },
-    { id: "Water Bottle", desc: "750ml stainless steel" },
-    { id: "Face Mask",    desc: "Pack of 5 printed masks" },
+    { id: "T-Shirt",      desc: "240 GSM heavy cotton streetwear" },
+    { id: "Beer Mug",     desc: "Frosted glass festive mug" },
+    { id: "Coffee Mug",   desc: "11oz matte black ceramic mug" },
+    { id: "Cushion",      desc: "30×30 cm soft textured linen" },
+    { id: "Water Bottle", desc: "750ml stainless steel thermal" },
+    { id: "Face Mask",    desc: "Pack of 5 designer cotton masks" },
   ];
   const sizes = ["XS", "S", "M", "L", "XL", "XXL"];
   const needsSize = PRODUCTS_WITH_SIZE.includes(form.productType);
@@ -141,23 +159,48 @@ function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState
         <h2 className="text-2xl font-black text-white mb-1">Choose Your Gift Canvas</h2>
         <p className="text-sm" style={{ color: "#4A4A58" }}>Select the product you&apos;d like your memory printed on.</p>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        {products.map(({ id, desc }) => (
-          <button key={id} onClick={() => {
-            set("productType", id);
-            set("productSize", "");
-            analytics.viewItem(id, BASE_PRICES[id] ?? 0);
-          }}
-            style={card(form.productType === id)} className="p-4 text-left flex flex-col gap-2 hover:scale-[1.02] transition-transform relative">
-            <span className="text-3xl">{PRODUCT_EMOJIS[id]}</span>
-            <div>
-              <p className="font-bold text-white text-sm">{id}</p>
-              <p className="text-xs" style={{ color: "#4A4A58" }}>{desc}</p>
-            </div>
-            <p className="font-black text-sm" style={{ color: "#FFB800" }}>{formatPrice(BASE_PRICES[id] ?? 0)}</p>
-            {form.productType === id && <CheckCircle2 size={14} className="absolute top-3 right-3" style={{ color: "#FFB800" }} />}
-          </button>
-        ))}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        {products.map(({ id, desc }) => {
+          const imgSrc = customImages?.[id] || PRODUCT_IMAGES[id];
+          const isSelected = form.productType === id;
+          return (
+            <button
+              key={id}
+              onClick={() => {
+                set("productType", id);
+                set("productSize", "");
+                analytics.viewItem(id, BASE_PRICES[id] ?? 0);
+              }}
+              style={card(isSelected)}
+              className="p-3 text-left flex flex-col gap-2 hover:scale-[1.02] transition-all relative overflow-hidden group"
+            >
+              {/* Product Photo */}
+              <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-black/40 border border-white/5 flex items-center justify-center">
+                {imgSrc ? (
+                  <img
+                    src={imgSrc}
+                    alt={id}
+                    className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                    onError={(e) => { (e.currentTarget as HTMLElement).style.display = "none"; }}
+                  />
+                ) : null}
+                <span className="text-3xl absolute -z-10">{PRODUCT_EMOJIS[id]}</span>
+              </div>
+              <div>
+                <p className="font-bold text-white text-sm flex items-center justify-between">
+                  <span>{id}</span>
+                  <span className="text-xs font-black text-[#FFB800]">{formatPrice(BASE_PRICES[id] ?? 0)}</span>
+                </p>
+                <p className="text-[11px] line-clamp-1" style={{ color: "#9B9BAA" }}>{desc}</p>
+              </div>
+              {isSelected && (
+                <div className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center bg-[#FFB800] text-[#0A0A0B] shadow-md">
+                  <CheckCircle2 size={13} />
+                </div>
+              )}
+            </button>
+          );
+        })}
       </div>
       {needsSize && (
         <div className="space-y-2 pt-2">
@@ -835,28 +878,45 @@ function Step6Review({ form, onPay, loading, error, setPromo, setGiftBox }:
         </div>
       )}
       {error && (
-        <div className="flex items-start gap-2 text-xs p-3 rounded-xl"
-          style={{ background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.2)", color: "#f87171" }}>
-          <AlertCircle size={13} className="mt-0.5 shrink-0" />{error}
+        <div className="space-y-2">
+          <div className="flex items-start gap-2 text-xs p-3.5 rounded-xl"
+            style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#f87171" }}>
+            <AlertCircle size={14} className="mt-0.5 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-semibold">{error}</p>
+              <p className="text-[11px] opacity-80">Having gateway trouble? You can also complete your payment directly via UPI on WhatsApp.</p>
+            </div>
+          </div>
+          <a
+            href={`https://wa.me/918882414728?text=${encodeURIComponent(
+              `Hi GiftUnlock team! I'm placing an order for ${form.productType} (${form.tier || "QR Classic"}) and would like to pay ₹${effectiveTotal} directly via UPI. Customer: ${form.customerName}, Phone: ${form.customerPhone}`
+            )}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center gap-2 py-3 px-4 rounded-xl text-xs font-bold w-full transition-all hover:scale-[1.01]"
+            style={{ background: "#25D366", color: "#FFFFFF" }}
+          >
+            💬 Pay ₹{effectiveTotal} via UPI on WhatsApp (+91 88824 14728) →
+          </a>
         </div>
       )}
       {/* QR scannable guarantee */}
       <div className="space-y-1.5">
         <div className="flex items-start gap-3 p-4 rounded-xl"
           style={{ background: "rgba(34,197,94,0.07)", border: "1px solid rgba(34,197,94,0.2)" }}>
-          <span className="text-base shrink-0 mt-0.5">✅</span>
+          <span className="text-base shrink-0 mt-0.5">🛡️</span>
           <p className="text-xs leading-relaxed" style={{ color: "#86efac" }}>
             Your AI-crafted <strong>{getQrStyle(form.occasion)}</strong> QR is{" "}
-            <strong>manually tested 100% scannable</strong> before dispatch.{" "}
-            Free reprint if QR is non-functional on arrival.*
+            <strong>3-step scan verified</strong> before dispatch.{" "}
+            <strong>24h On-Arrival Guarantee:</strong> Free replacement reprint if QR fails on arrival (verified via unboxing video within 24h).*
           </p>
         </div>
         <p className="text-[10px] px-1" style={{ color: "#4A4A58" }}>
-          *See our{" "}
+          *Custom-printed items are non-returnable once accepted. See our{" "}
           <Link href="/return-policy" target="_blank" className="underline hover:text-white transition-colors">
-            Return Policy
+            Return &amp; Guarantee Policy
           </Link>{" "}
-          for full reprint terms.
+          for details.
         </p>
       </div>
       <button onClick={onPay} disabled={!!loading}
@@ -892,7 +952,6 @@ function ProgressBar({ step }: { step: number }) {
   );
 }
 
-/* ─── Main Page ─────────────────────────────────────────── */
 export default function OrderPage() {
   const router = useRouter();
   const [step, setStep]      = useState(1);
@@ -900,6 +959,7 @@ export default function OrderPage() {
   const [loading, setLoading] = useState<string | null>(null);
   const [error,   setError]   = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<ShippingErrors>({});
+  const [customImages, setCustomImages] = useState<Record<string, string>>({});
 
   const set      = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
   const setStr   = (k: keyof FormState, v: string)  => setFormState(p => ({ ...p, [k]: v }));
@@ -907,6 +967,31 @@ export default function OrderPage() {
   const setPromo = (code: string, discount: number, final: number) =>
     setFormState(p => ({ ...p, promoCode: code, discountAmount: discount, finalTotal: final }));
   const setGiftBox = (v: boolean) => setFormState(p => ({ ...p, hasGiftBox: v }));
+
+  // Pre-load custom product photos from API
+  useEffect(() => {
+    fetch("/api/products")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((items: ProductItem[]) => {
+        if (Array.isArray(items)) {
+          const map: Record<string, string> = {};
+          items.forEach((p) => { if (p.image) map[p.id] = p.image; });
+          setCustomImages(map);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Pre-select product from URL query param (?product=T-Shirt)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const prod = params.get("product");
+      if (prod && BASE_PRICES[prod]) {
+        set("productType", prod);
+      }
+    }
+  }, []);
 
   const validate = (): string | null => {
     switch (step) {
@@ -964,26 +1049,41 @@ export default function OrderPage() {
       const loaded = await loadRazorpay();
       if (!loaded) throw new Error("Could not load payment gateway. Please try again.");
 
+      const razorpayKey = data.keyId || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+      if (!razorpayKey || razorpayKey === "rzp_test_PLACEHOLDER") {
+        throw new Error("Payment gateway is being configured. Please tap WhatsApp below to place your order directly via UPI!");
+      }
+
       const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        key: razorpayKey,
         amount: data.amount, currency: data.currency,
         name: "GiftUnlock.in", description: `${form.productType} — ${form.tier}`,
         order_id: data.orderId,
-        prefill: { name: form.customerName, contact: form.customerPhone },
+        prefill: { name: form.customerName, contact: form.customerPhone, email: form.customerEmail },
         theme: { color: "#FFB800" },
         modal: {
           ondismiss: () => {
             setLoading(null);
             setError("Payment was not completed. Your memory order details are saved — need help? Chat with us on WhatsApp anytime!");
           },
+          escape: true,
         },
         handler: () => {
           setLoading(null);
           router.push(`/order/success?slug=${data.secureSlug}&product=${encodeURIComponent(form.productType)}&tier=${encodeURIComponent(form.tier)}&name=${encodeURIComponent(form.customerName)}`);
         },
       };
+
+      const rzpInstance = new window.Razorpay(options);
+      (rzpInstance as any).on("payment.failed", function (response: any) {
+        setLoading(null);
+        const reason = response?.error?.description || response?.error?.reason || "Payment was declined or cancelled.";
+        console.error("Razorpay payment error:", response?.error);
+        setError(`Payment could not be completed: ${reason}. You can also pay directly via UPI on WhatsApp (+91 88824 14728)!`);
+      });
+
       setLoading(null);
-      new window.Razorpay(options).open();
+      rzpInstance.open();
     } catch (err) {
       setLoading(null);
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -992,7 +1092,7 @@ export default function OrderPage() {
 
   const renderStep = () => {
     switch (step) {
-      case 1: return <Step1Product         form={form} set={set} />;
+      case 1: return <Step1Product         form={form} set={set} customImages={customImages} />;
       case 2: return <Step2Tier            form={form} set={set} />;
       case 3: return <Step3Media           form={form} setFiles={setFiles} setStr={setStr} />;
       case 4: return <Step4Personalization form={form} set={set} />;

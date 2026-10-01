@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
 import { SUPPORT_WHATSAPP_URL } from "@/lib/constants";
+import { DEFAULT_PRODUCTS, ProductItem } from "@/lib/products";
 
 /* ─── Fade-up hook ────────────────────────────────────────── */
 function useFadeUp(delay = 0) {
@@ -510,14 +511,19 @@ function WhyAI() {
 
 /* ─── PRODUCTS ─────────────────────────────────────────────── */
 function Products() {
-  const products = [
-    { emoji: "👕", name: "T-Shirt",       price: "₹899",   tag: "Best Seller", alt: "GiftUnlock personalized memory T-shirt with Holi artistic QR code" },
-    { emoji: "🍺", name: "Beer Mug",      price: "₹799",   tag: null,          alt: "GiftUnlock personalized memory beer mug with Haldi artistic QR code" },
-    { emoji: "😷", name: "Face Mask",     price: "₹499",   tag: null,          alt: "GiftUnlock personalized memory face mask with artistic QR code" },
-    { emoji: "🛋️", name: "Cushion",       price: "₹699",   tag: null,          alt: "GiftUnlock personalized memory cushion with artistic QR code" },
-    { emoji: "☕", name: "Coffee Mug",    price: "₹699",   tag: null,          alt: "GiftUnlock personalized memory coffee mug with artistic QR code" },
-    { emoji: "💧", name: "Water Bottle",  price: "₹899",   tag: null,          alt: "GiftUnlock personalized memory water bottle with artistic QR code" },
-  ];
+  const [products, setProducts] = useState<ProductItem[]>(DEFAULT_PRODUCTS);
+
+  useEffect(() => {
+    fetch("/api/products")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setProducts(data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   return (
     <section id="products" className="py-24" style={{ background: "rgba(17,17,22,0.4)" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
@@ -526,20 +532,41 @@ function Products() {
           <h2 className="text-4xl font-black text-white">Premium Gifts, <span style={{ color: "#FFB800" }}>Emotional Stories</span></h2>
           <p className="max-w-xl mx-auto" style={{ color: "#9B9BAA" }}>Every product is a canvas for a memory that plays with one scan.</p>
         </FadeUp>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {products.map(({ emoji, name, price, tag, alt }, i) => (
-            <FadeUp key={name} delay={i * 0.08}>
-              <div className="relative p-6 rounded-2xl flex flex-col gap-4 h-full transition-transform hover:scale-[1.02]"
-                style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.1)" }}>
-                {tag && <span className="absolute top-3 right-3 text-[10px] font-bold px-2 py-0.5 rounded-full"
-                  style={{ background: "#FFB800", color: "#0A0A0B" }}>{tag}</span>}
-                <div className="text-4xl" role="img" aria-label={alt}>{emoji}</div>
-                <div className="flex-1 space-y-1">
-                  <h3 className="font-bold text-white text-base">{name}</h3>
-                  <p className="text-xl font-black" style={{ color: "#FFB800" }}>{price}</p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {products.map(({ id, name, formattedPrice, tag, alt, image, desc, emoji }, i) => (
+            <FadeUp key={id} delay={i * 0.08}>
+              <div className="group relative p-5 rounded-2xl flex flex-col gap-4 h-full transition-all duration-300 hover:scale-[1.02] hover:border-[#FFB800]/40"
+                style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.12)" }}>
+                {tag && <span className="absolute top-4 right-4 z-10 text-[10px] font-black px-2.5 py-1 rounded-full shadow-lg"
+                  style={{ background: "linear-gradient(135deg, #FFD700, #FF9A3C)", color: "#0A0A0B" }}>{tag}</span>}
+                
+                {/* Product Image */}
+                <div className="relative w-full aspect-square rounded-xl overflow-hidden bg-black/50 border border-white/5 flex items-center justify-center">
+                  <img
+                    src={image}
+                    alt={alt}
+                    loading="lazy"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLElement).style.display = "none";
+                    }}
+                  />
+                  {/* Fallback emoji */}
+                  <span className="text-5xl absolute -z-10">{emoji}</span>
                 </div>
-                <Link href="/order" className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02]"
-                  style={{ background: "#FFB800", color: "#0A0A0B" }}>Order Now →</Link>
+
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-bold text-white text-base">{name}</h3>
+                    <p className="text-lg font-black" style={{ color: "#FFB800" }}>{formattedPrice}</p>
+                  </div>
+                  <p className="text-xs leading-relaxed" style={{ color: "#9B9BAA" }}>{desc}</p>
+                </div>
+
+                <Link href={`/order?product=${encodeURIComponent(id)}`} className="flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02] shadow-md hover:shadow-lg"
+                  style={{ background: "linear-gradient(135deg, #FFD700 0%, #FF9A3C 100%)", color: "#0A0A0B" }}>
+                  Order {name} Now →
+                </Link>
               </div>
             </FadeUp>
           ))}
@@ -627,7 +654,7 @@ function FAQ() {
     },
     {
       q: "What if the QR code doesn't scan?",
-      a: "We offer a 100% Scannable Guarantee. If the QR code on your product fails to scan for any reason, we reprint and reship at zero cost to you.",
+      a: "Every product is 3-step quality tested before dispatch. Because our items are custom-printed memories made specifically for you, they are non-returnable. However, under our On-Arrival Guarantee, if you report a scanning issue within 24 hours of delivery with an unboxing test video on WhatsApp, we will reprint and reship a fresh replacement free of cost.",
     },
     {
       q: "What occasions is this best for?",
@@ -664,8 +691,8 @@ function FAQ() {
 function TrustBar() {
   const items = [
     { emoji: "🔒", label: "Razorpay Secured" },
-    { emoji: "📦", label: "100% Scannable Guarantee" },
-    { emoji: "🔄", label: "Free Reprint if QR Fails" },
+    { emoji: "📦", label: "3-Step Scan Tested" },
+    { emoji: "🛡️", label: "24h On-Arrival Scan Guarantee" },
     { emoji: "🚚", label: "Pan India Delivery" },
     { emoji: "⏱", label: "48hr Turnaround" },
   ];
@@ -753,7 +780,7 @@ function Footer() {
             <p style={{ color: '#f59e0b', fontWeight: 700, fontSize: '16px', textShadow: '0 0 8px rgba(245,158,11,0.5)' }}>❤️ Made in Delhi</p>
             <p className="text-sm" style={{ color: "#9B9BAA" }}>✨ AI-crafted festive artistic QR (Haldi/Holi style)</p>
             <p className="text-xs leading-relaxed" style={{ color: "#555566" }}>
-              Delhi/NCR same-day DTF printing by our partner · 100% Scannable Guarantee · Free reprint if QR fails
+              Delhi/NCR same-day DTF printing by our partner · 3-Step Scan Verified · 24h On-Arrival Guarantee
             </p>
             <div className="flex gap-4 pt-1">
               <a href="https://instagram.com/giftunlock" target="_blank" rel="noopener noreferrer"
@@ -766,7 +793,7 @@ function Footer() {
 
         {/* Fix 3 — centered trust line */}
         <p className="text-center text-xs py-4 border-t border-b" style={{ borderColor: "rgba(255,184,0,0.04)", color: "#3A3A4A" }}>
-          Same-day DTF printing in Delhi/NCR by our trusted partner · Zero recurring cost · Lifetime video hosting · 100% Scannable Guarantee
+          Same-day DTF printing in Delhi/NCR by our trusted partner · Zero recurring cost · Lifetime video hosting · 24h On-Arrival Scan Guarantee
         </p>
 
         {/* Copyright row */}

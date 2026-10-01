@@ -26,28 +26,24 @@ export default function ReturnPolicyPage() {
 
         {[
           {
-            title: "1. Reprint Policy",
-            body: `Free reprints are offered only when the QR code is confirmed non-functional upon arrival and reported within 48 hours of delivery. To qualify, you must contact us on WhatsApp (+91-6396151569) with your Order ID and a short video showing the QR scan failing. Reprints are not applicable for physical damage, scratches, fading, or misuse after delivery.`,
+            title: "1. Custom Goods & Non-Returnable Policy",
+            body: `Every GiftUnlock product is individually manufactured and custom-printed with your personal photos, videos, and dynamic QR artwork. Because personalized items cannot be restocked or resold, custom goods are strictly non-returnable once accepted. Please review your media, spelling, and product sizing carefully before completing your order.`,
           },
           {
-            title: "2. Returns — Damaged or Wrong Item",
-            body: `If your product arrives physically damaged or is the wrong item, contact us within 48 hours of delivery with photos of the issue and your Order ID. We will arrange a free pickup and ship the correct or replacement product at no additional cost.`,
+            title: "2. 24-Hour On-Arrival Scan & Damage Guarantee",
+            body: `Every product undergoes 3-step quality verification and scan validation prior to dispatch. If your order arrives damaged in transit or the QR code fails to scan on initial arrival, you must report it within 24 hours of delivery. To qualify for a free replacement reprint, share a continuous unboxing video clearly displaying the package label and the scanning test on WhatsApp (+91-8882414728) along with your Order ID. Once verified, a replacement will be printed and shipped at zero additional cost.`,
           },
           {
-            title: "3. Non-Returnable Items",
-            body: `Because every product is custom-printed to order, we do not accept returns or exchanges for change of mind, incorrect customisation details provided by the customer, or normal wear and tear. Please review your order carefully before confirming payment.`,
+            title: "3. Cancellations",
+            body: `Cancellations are only accepted within 2 hours of order placement, before digital artwork remastering and DTF printing commence. Contact us immediately on WhatsApp with your Order ID. Once production has started, orders cannot be cancelled.`,
           },
           {
-            title: "4. Cancellations",
-            body: `Cancellations are only accepted within 2 hours of order placement, before production begins. Contact us immediately on WhatsApp with your Order ID. Once production has started, cancellations cannot be honoured.`,
+            title: "4. Refund Process",
+            body: `Approved refunds (e.g. duplicate payments or orders cancelled within 2 hours) are processed to the original payment method within 5–7 business days via Razorpay.`,
           },
           {
-            title: "5. Refund Process",
-            body: `Approved refunds are processed to the original payment method within 5–7 business days via Razorpay. You will receive a WhatsApp confirmation once the refund is initiated.`,
-          },
-          {
-            title: "6. Contact",
-            body: `For all return, reprint, or refund requests, reach us on WhatsApp: +91-6396151569. Please include your Order ID and a description of the issue.`,
+            title: "5. Contact & Support",
+            body: `For all replacement, order status, or delivery inquiries, reach our team directly on WhatsApp: +91-8882414728 (orders@giftunlock.in). Please have your 8-character Order ID ready.`,
           },
         ].map(({ title, body }) => (
           <section key={title} className="space-y-2">

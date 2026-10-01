@@ -3,9 +3,10 @@ import { ReactNode } from "react";
 import LogoutButton from "./LogoutButton";
 
 const NAV_ITEMS = [
-  { href: "/admin/orders",  label: "Orders",      icon: "📦" },
-  { href: "/admin/promos",  label: "Promo Codes",  icon: "🏷️" },
-  { href: "/admin/storage", label: "Storage",      icon: "💾" },
+  { href: "/admin/orders",   label: "Orders",         icon: "📦" },
+  { href: "/admin/promos",   label: "Promo Codes",     icon: "🏷️" },
+  { href: "/admin/products", label: "Product Images",  icon: "🖼️" },
+  { href: "/admin/storage",  label: "Storage",         icon: "💾" },
 ];
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {

@@ -128,19 +128,32 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    /* ── Dev bypass when keys are placeholders ─────────── */
-    const isDevBypass     = process.env.RAZORPAY_KEY_ID === "rzp_test_PLACEHOLDER";
-    let razorpayOrderId   = `mock_${secureSlug}`;
+    /* ── Resolve Razorpay Keys ─────────────────────────── */
+    const keyId = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "";
+    const keySecret = process.env.RAZORPAY_KEY_SECRET || "";
+    const isDevBypass = !keyId || keyId === "rzp_test_PLACEHOLDER" || !keySecret;
+    let razorpayOrderId = `mock_${secureSlug}`;
 
     if (!isDevBypass) {
-      const rzpOrder = await createRazorpayOrder(
-        process.env.RAZORPAY_KEY_ID!,
-        process.env.RAZORPAY_KEY_SECRET!,
-        finalTotal * 100,
-        `gu_${secureSlug}`,
-        { customerName, productType, tier }
-      );
-      razorpayOrderId = rzpOrder.id;
+      try {
+        const rzpOrder = await createRazorpayOrder(
+          keyId,
+          keySecret,
+          finalTotal * 100,
+          `gu_${secureSlug}`,
+          { customerName, productType, tier }
+        );
+        razorpayOrderId = rzpOrder.id;
+      } catch (rzpErr: any) {
+        console.error("Razorpay order creation error:", rzpErr);
+        return NextResponse.json(
+          {
+            error: "Payment Gateway Error",
+            detail: rzpErr.message || "Failed to initialize payment gateway with provided credentials.",
+          },
+          { status: 502 }
+        );
+      }
     }
 
     /* ── Insert order into Supabase ────────────────────── */
@@ -187,10 +200,11 @@ export async function POST(req: NextRequest) {
       currency:  "INR",
       secureSlug,
       dbOrderId: order.id,
+      keyId,
       bypass:    isDevBypass,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error("Checkout error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error", detail: err?.message || String(err) }, { status: 500 });
   }
 }

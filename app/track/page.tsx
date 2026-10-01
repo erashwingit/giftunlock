@@ -7,6 +7,8 @@
  */
 
 import { useState, FormEvent } from "react";
+import Link from "next/link";
+import { ArrowLeft, RotateCcw } from "lucide-react";
 import { getWhatsAppOrderHelpUrl, getWhatsAppSupportUrl } from "@/lib/whatsapp";
 import { getCourierTrackingUrl } from "@/lib/shipping";
 
@@ -88,9 +90,44 @@ export default function TrackPage() {
 
   return (
     <main
-      className="min-h-screen flex flex-col items-center justify-center px-4 py-16 text-white"
+      className="min-h-screen flex flex-col items-center justify-center px-4 py-20 text-white relative"
       style={{ background: "linear-gradient(135deg, #0A0A0B 0%, #12121A 100%)" }}
     >
+      {/* ── Fixed Top Navigation Bar ───────────────────────── */}
+      <nav
+        className="w-full fixed top-0 left-0 z-50 px-4 sm:px-8 py-3.5 flex items-center justify-between"
+        style={{
+          background: "rgba(10, 10, 11, 0.95)",
+          backdropFilter: "blur(12px)",
+          borderBottom: "1px solid rgba(255,184,0,0.08)",
+        }}
+      >
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm font-semibold transition-colors text-[#9B9BAA] hover:text-white"
+        >
+          <ArrowLeft size={16} /> Back to Home
+        </Link>
+        <Link href="/" className="flex items-center gap-2">
+          <div
+            className="w-7 h-7 rounded-lg flex items-center justify-center font-black text-xs"
+            style={{ background: "#FFB800", color: "#0A0A0B" }}
+          >
+            🎁
+          </div>
+          <span className="font-bold text-sm tracking-tight text-white">
+            Gift<span style={{ color: "#FFB800" }}>Unlock</span>
+          </span>
+        </Link>
+        <Link
+          href="/order"
+          className="text-xs font-bold px-3 py-1.5 rounded-xl transition-all hover:scale-105"
+          style={{ background: "rgba(255,184,0,0.12)", color: "#FFB800", border: "1px solid rgba(255,184,0,0.2)" }}
+        >
+          New Order →
+        </Link>
+      </nav>
+
       {/* Ambient glow */}
       <div
         className="absolute inset-0 pointer-events-none"
@@ -100,10 +137,10 @@ export default function TrackPage() {
         }}
       />
 
-      <div className="relative w-full max-w-md space-y-8">
+      <div className="relative w-full max-w-md space-y-6 pt-4">
         {/* Header */}
         <div className="text-center space-y-2">
-          <div className="text-4xl mb-3">🎁</div>
+          <div className="text-4xl mb-2">🎁</div>
           <h1 className="text-3xl font-black">Track Your Order</h1>
           <p className="text-sm" style={{ color: "#9B9BAA" }}>
             Enter your Order ID or registered phone number
@@ -156,14 +193,21 @@ export default function TrackPage() {
               border: "1px solid rgba(255,184,0,0.12)",
             }}
           >
-            {/* Status badge */}
-            <div className="flex items-center gap-3">
+            {/* Status badge & reset action */}
+            <div className="flex items-center justify-between">
               <span
                 className="px-3 py-1.5 rounded-full text-xs font-bold"
                 style={{ background: statusInfo.bg, color: statusInfo.color }}
               >
                 {statusInfo.text}
               </span>
+              <button
+                type="button"
+                onClick={() => { setOrder(null); setQuery(""); }}
+                className="inline-flex items-center gap-1 text-xs text-[#9B9BAA] hover:text-white transition-colors"
+              >
+                <RotateCcw size={12} /> Search another
+              </button>
             </div>
 
             {/* Order details */}
@@ -230,6 +274,16 @@ export default function TrackPage() {
         >
           💬 Need help? Chat on WhatsApp
         </a>
+
+        {/* Navigation fallback */}
+        <div className="text-center pt-2">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-1.5 text-xs text-[#9B9BAA] hover:text-white transition-colors"
+          >
+            <ArrowLeft size={13} /> Return to GiftUnlock Store
+          </Link>
+        </div>
 
         <p className="text-center text-xs" style={{ color: "#252530" }}>
           GiftUnlock.in — Made with ❤️ in India
