@@ -9,6 +9,7 @@
  */
 
 import { Resend } from "resend";
+import { WHATSAPP_NUMBER, SITE_URL } from "./constants";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -27,8 +28,8 @@ export async function sendOrderConfirmationEmail(
   params: OrderConfirmationParams
 ): Promise<void> {
   const { to, customerName, secureSlug, productType, tier } = params;
-  const playLink = `https://giftunlock.in/play/${secureSlug}`;
-  const trackLink = `https://giftunlock.in/track`;
+  const playLink = `${SITE_URL}/play/${secureSlug}`;
+  const trackLink = `${SITE_URL}/track`;
 
   const html = `
 <!DOCTYPE html>
@@ -136,7 +137,7 @@ export async function sendOrderConfirmationEmail(
               <p style="margin:0 0 12px;font-size:12px;color:#4A4A58;">
                 Questions? We're here to help.
               </p>
-              <a href="https://wa.me/916396151569?text=Hi! I have a question about my GiftUnlock order ${secureSlug.toUpperCase()}"
+              <a href="https://wa.me/${WHATSAPP_NUMBER}?text=Hi! I have a question about my GiftUnlock order ${secureSlug.toUpperCase()}"
                 style="display:inline-block;padding:12px 24px;border-radius:14px;background:#25D366;color:#FFFFFF;font-size:13px;font-weight:700;text-decoration:none;">
                 💬 Chat on WhatsApp
               </a>

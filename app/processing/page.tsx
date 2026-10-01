@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { Suspense, CSSProperties } from "react";
 import Link from "next/link";
 import { Clock, Sparkles, CheckCircle2, Film, QrCode, Truck } from "lucide-react";
+import { getWhatsAppOrderHelpUrl, getWhatsAppSupportUrl } from "@/lib/whatsapp";
 
 const entry = (delay: number): CSSProperties => ({
   animation: `fadeInUp 0.6s ease ${delay}s both`,
@@ -112,7 +113,7 @@ function ProcessingContent() {
         {/* Actions */}
         <div className="flex flex-col gap-3" style={entry(0.35)}>
           <a
-            href="https://wa.me/916396151569"
+            href={slug ? getWhatsAppOrderHelpUrl(slug) : getWhatsAppSupportUrl()}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm"

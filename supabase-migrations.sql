@@ -58,3 +58,16 @@ $$;
 
 -- Add customer email for order confirmation notifications
 ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email TEXT;
+
+-- ------------------------------------------------------------
+-- 5. Customer Reviews table
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS reviews (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  order_slug TEXT,
+  customer_name TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  product_type TEXT,
+  comment TEXT NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);

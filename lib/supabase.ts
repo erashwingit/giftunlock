@@ -58,3 +58,15 @@ export interface PromoCode {
   active:     boolean;
   created_at: string;
 }
+
+/** Customer review row type */
+export interface Review {
+  id:            string;
+  order_slug?:   string | null;
+  customer_name: string;
+  rating:        number;
+  product_type?: string | null;
+  comment:       string;
+  created_at:    string;
+}
+

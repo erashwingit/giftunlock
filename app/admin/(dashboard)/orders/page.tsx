@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import type { Order } from "@/lib/supabase";
+import { getWhatsAppCustomerNotifyUrl } from "@/lib/whatsapp";
 
 /* ── Types ──────────────────────────────────────────────── */
 interface Stats {
@@ -361,6 +362,11 @@ export default function AdminOrdersPage() {
                 <td className="px-4 py-3">
                   <div className="text-xs font-semibold text-white">{order.customer_name}</div>
                   <div className="text-[11px]" style={{ color: "#4A4A58" }}>{order.customer_phone}</div>
+                  {order.customer_email && (
+                    <div className="text-[10px] truncate max-w-[140px]" style={{ color: "#606070" }}>
+                      {order.customer_email}
+                    </div>
+                  )}
                 </td>
                 {/* Product */}
                 <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#D0D0D8" }}>
@@ -433,6 +439,25 @@ export default function AdminOrdersPage() {
                     >
                       📷 View Media
                     </button>
+                    {/* WhatsApp Customer */}
+                    <a
+                      href={getWhatsAppCustomerNotifyUrl(
+                        order.customer_phone,
+                        order.secure_slug,
+                        order.destination_video_url ? "video_ready" : "confirmed",
+                        order.customer_name
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg text-[11px] font-bold transition-opacity hover:opacity-80 text-center whitespace-nowrap"
+                      style={{
+                        background: "rgba(37,211,102,0.12)",
+                        color:      "#22c55e",
+                        border:     "1px solid rgba(37,211,102,0.25)",
+                      }}
+                    >
+                      💬 WhatsApp
+                    </a>
                     {/* Delete Raw Media */}
                     <button
                       onClick={() => deleteRawMedia(order.id)}

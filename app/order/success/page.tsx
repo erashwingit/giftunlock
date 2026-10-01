@@ -2,8 +2,10 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Suspense, CSSProperties, useState } from "react";
-import { CheckCircle2, Clock, Package, Scan, ArrowRight, Lock, Heart, Copy } from "lucide-react";
+import { Suspense, CSSProperties, useState, useEffect } from "react";
+import { CheckCircle2, Clock, Package, Scan, ArrowRight, Lock, Heart, Copy, Share2 } from "lucide-react";
+import { getWhatsAppOrderHelpUrl, getWhatsAppRecipientShareUrl } from "@/lib/whatsapp";
+import { analytics } from "@/lib/analytics";
 
 const entry = (delay: number): CSSProperties => ({
   animation: `fadeInUp 0.6s ease ${delay}s both`,
@@ -22,6 +24,12 @@ function SuccessContent() {
 
   /* ── Copy to clipboard ──────────────────────────────── */
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    if (slug) {
+      analytics.purchase(slug, 0, product, tier);
+    }
+  }, [slug, product, tier]);
 
   const handleCopy = async () => {
     /* Build URL at click time using the real origin — never relies on
@@ -159,6 +167,21 @@ function SuccessContent() {
             <Copy size={14} />
             {copied ? "✅ Copied!" : "Copy Shareable Link"}
           </button>
+          {/* Share on WhatsApp to Recipient */}
+          <a
+            href={getWhatsAppRecipientShareUrl(slug, name.split(" ")[0])}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.01]"
+            style={{
+              background: "rgba(37, 211, 102, 0.15)",
+              color: "#25D366",
+              border: "1px solid rgba(37, 211, 102, 0.3)",
+            }}
+          >
+            <Share2 size={14} />
+            Send Memory Link on WhatsApp 📲
+          </a>
           <p style={{ color: "#4A4A58" }} className="text-xs leading-relaxed">
             Share this link with your recipient. Once the memory video is ready, they'll see everything at this URL.
           </p>
@@ -167,7 +190,7 @@ function SuccessContent() {
         {/* CTA buttons */}
         <div className="flex flex-col gap-3" style={entry(0.4)}>
           <a
-            href={`https://wa.me/916396151569?text=Hi! I just placed order ${slug.toUpperCase()} on GiftUnlock.in`}
+            href={getWhatsAppOrderHelpUrl(slug)}
             target="_blank" rel="noopener noreferrer"
             className="w-full flex items-center justify-center gap-2 py-3.5 rounded-2xl font-bold text-sm transition-all hover:scale-[1.02]"
             style={{ background: "#25D366", color: "#fff" }}

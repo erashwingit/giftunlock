@@ -7,6 +7,7 @@
  */
 
 import { useState, FormEvent } from "react";
+import { getWhatsAppOrderHelpUrl, getWhatsAppSupportUrl } from "@/lib/whatsapp";
 
 interface OrderInfo {
   payment_status: string;
@@ -192,7 +193,7 @@ export default function TrackPage() {
 
         {/* WhatsApp support */}
         <a
-          href="https://wa.me/916396151569?text=Hi! I need help with my GiftUnlock order."
+          href={order?.secure_slug ? getWhatsAppOrderHelpUrl(order.secure_slug) : getWhatsAppSupportUrl()}
           target="_blank"
           rel="noopener noreferrer"
           className="flex items-center justify-center gap-2 w-full py-3 rounded-2xl text-sm font-bold transition-all hover:scale-[1.02]"

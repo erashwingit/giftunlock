@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatPrice } from "@/lib/utils";
+import { analytics } from "@/lib/analytics";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, X, Lock,
   Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone,
@@ -139,7 +140,11 @@ function Step1Product({ form, set }: { form: FormState; set: (k: keyof FormState
       </div>
       <div className="grid grid-cols-2 gap-3">
         {products.map(({ id, desc }) => (
-          <button key={id} onClick={() => { set("productType", id); set("productSize", ""); }}
+          <button key={id} onClick={() => {
+            set("productType", id);
+            set("productSize", "");
+            analytics.viewItem(id, BASE_PRICES[id] ?? 0);
+          }}
             style={card(form.productType === id)} className="p-4 text-left flex flex-col gap-2 hover:scale-[1.02] transition-transform relative">
             <span className="text-3xl">{PRODUCT_EMOJIS[id]}</span>
             <div>
@@ -196,7 +201,10 @@ function Step2Tier({ form, set }: { form: FormState; set: (k: keyof FormState, v
         {tiers.map(({ id, price, badge, tagline, features }) => {
           const sel = form.tier === id;
           return (
-            <button key={id} onClick={() => set("tier", id)}
+            <button key={id} onClick={() => {
+              set("tier", id);
+              analytics.beginCheckout(form.productType, id, price);
+            }}
               style={{ ...card(sel), position: "relative" }}
               className="p-6 text-left flex flex-col gap-4 hover:scale-[1.01] transition-transform">
               {badge && <span className="absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full"

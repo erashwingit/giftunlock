@@ -5,6 +5,8 @@
  * Replaces the previous redirect("/") behaviour with a friendly waiting page.
  */
 
+import { getWhatsAppOrderHelpUrl } from "@/lib/whatsapp";
+
 interface Props {
   slug: string;
 }
@@ -85,7 +87,7 @@ export default function PaymentProcessingView({ slug }: Props) {
 
           {/* WhatsApp */}
           <a
-            href={`https://wa.me/916396151569?text=Hi! My payment for GiftUnlock order ${slug.toUpperCase()} is pending. Please help.`}
+            href={getWhatsAppOrderHelpUrl(slug)}
             target="_blank"
             rel="noopener noreferrer"
             className="w-full py-3.5 rounded-2xl text-sm font-bold flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
