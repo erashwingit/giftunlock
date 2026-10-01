@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   if (slug) {
     const { data, error } = await supabase
       .from("orders")
-      .select("payment_status, product_type, tier, secure_slug, created_at")
+      .select("payment_status, product_type, tier, secure_slug, created_at, order_status, tracking_number, courier_name")
       .eq("secure_slug", slug)
       .single();
 
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
   if (phone) {
     const { data, error } = await supabase
       .from("orders")
-      .select("payment_status, product_type, tier, secure_slug, created_at, order_status")
+      .select("payment_status, product_type, tier, secure_slug, created_at, order_status, tracking_number, courier_name")
       .eq("customer_phone", phone)
       .order("created_at", { ascending: false })
       .limit(1)

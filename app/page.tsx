@@ -516,113 +516,24 @@ function Stats() {
 
 /* ─── TESTIMONIALS ───────────────────────────────────────── */
 function Testimonials() {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState("");
-  const [product, setProduct] = useState("T-Shirt");
-  const [submitting, setSubmitting] = useState(false);
-  const [submitted, setSubmitted] = useState(false);
-  const [err, setErr] = useState("");
-
-  const [reviewsList, setReviewsList] = useState([
-    { quote: "My dad cried when he scanned the QR on his mug. Best birthday gift I have ever given.", name: "Priya S.", city: "Mumbai", initial: "P", rating: 5 },
-    { quote: "The artistic QR was stunning. Every guest at the party kept asking where I got it from.", name: "Rohan K.", city: "Delhi", initial: "R", rating: 5 },
-    { quote: "All 8 of us uploaded college memories. One QR, one gift, one hundred happy tears. 😭", name: "Anjali M.", city: "Bangalore", initial: "A", rating: 5 },
-  ]);
-
-  useEffect(() => {
-    fetch("/api/reviews")
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (data?.reviews && data.reviews.length > 0) {
-          const formatted = data.reviews.map((r: { customer_name: string; comment: string; product_type?: string; rating: number }) => ({
-            quote: r.comment,
-            name: r.customer_name,
-            city: r.product_type ? `Verified (${r.product_type})` : "Verified Buyer",
-            initial: r.customer_name.charAt(0).toUpperCase() || "V",
-            rating: r.rating || 5,
-          }));
-          setReviewsList((prev) => [...formatted, ...prev].slice(0, 6));
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !comment.trim()) {
-      setErr("Please provide your name and review message.");
-      return;
-    }
-    setSubmitting(true);
-    setErr("");
-    try {
-      const res = await fetch("/api/reviews", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer_name: name,
-          rating,
-          comment,
-          product_type: product,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setErr(data.error || "Failed to submit review");
-        return;
-      }
-      setReviewsList((prev) => [
-        {
-          quote: comment,
-          name: name,
-          city: `Verified (${product})`,
-          initial: name.charAt(0).toUpperCase() || "V",
-          rating,
-        },
-        ...prev,
-      ]);
-      setSubmitted(true);
-      setTimeout(() => {
-        setModalOpen(false);
-        setSubmitted(false);
-        setName("");
-        setComment("");
-      }, 1500);
-    } catch {
-      setErr("Network error. Please try again.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+  const reviews = [
+    { quote: "My dad cried when he scanned the QR on his mug. Best birthday gift I have ever given.", name: "Priya S.", city: "Mumbai", initial: "P" },
+    { quote: "The artistic QR was stunning. Every guest at the party kept asking where I got it from.", name: "Rohan K.", city: "Delhi", initial: "R" },
+    { quote: "All 8 of us uploaded college memories. One QR, one gift, one hundred happy tears. 😭", name: "Anjali M.", city: "Bangalore", initial: "A" },
+  ];
   return (
     <section className="py-24" style={{ background: "#0A0A0B" }}>
       <div className="max-w-6xl mx-auto px-4 sm:px-6">
         <FadeUp className="text-center mb-16 space-y-3">
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#FFB800" }}>Real Stories</p>
           <h2 className="text-4xl font-black text-white">Tears of <span style={{ color: "#FFB800" }}>Pure Joy</span></h2>
-          <div className="pt-2">
-            <button
-              onClick={() => setModalOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all hover:scale-105"
-              style={{ background: "rgba(255,184,0,0.1)", color: "#FFB800", border: "1px solid rgba(255,184,0,0.25)" }}
-            >
-              ✍️ Write a Review
-            </button>
-          </div>
         </FadeUp>
         <div className="grid md:grid-cols-3 gap-5">
-          {reviewsList.map(({ quote, name, city, initial, rating: stars }, i) => (
-            <FadeUp key={`${name}-${i}`} delay={i * 0.12}>
+          {reviews.map(({ quote, name, city, initial }, i) => (
+            <FadeUp key={name} delay={i * 0.12}>
               <div className="p-6 rounded-2xl h-full flex flex-col gap-4"
                 style={{ background: "linear-gradient(145deg,#1A1A24,#111116)", border: "1px solid rgba(255,184,0,0.1)" }}>
-                <div className="flex gap-0.5">
-                  {Array.from({ length: stars || 5 }).map((_, j) => (
-                    <span key={j} style={{ color: "#FFB800", fontSize: 14 }}>★</span>
-                  ))}
-                </div>
+                <div className="flex gap-0.5">{Array.from({ length: 5 }).map((_, j) => <span key={j} style={{ color: "#FFB800", fontSize: 14 }}>★</span>)}</div>
                 <p className="text-sm leading-relaxed flex-1 italic" style={{ color: "#9B9BAA" }}>&ldquo;{quote}&rdquo;</p>
                 <div className="flex items-center gap-3 pt-3 border-t" style={{ borderColor: "rgba(255,184,0,0.08)" }}>
                   <div className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0"
@@ -637,110 +548,6 @@ function Testimonials() {
           ))}
         </div>
       </div>
-
-      {/* Review Submission Modal */}
-      {modalOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)" }}
-          onClick={() => setModalOpen(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl p-6 space-y-4"
-            style={{ background: "#12121A", border: "1px solid rgba(255,184,0,0.2)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">Share Your Experience ❤️</h3>
-              <button
-                onClick={() => setModalOpen(false)}
-                className="text-zinc-400 hover:text-white text-sm"
-              >
-                ✕
-              </button>
-            </div>
-
-            {submitted ? (
-              <div className="text-center py-6 space-y-2">
-                <span className="text-4xl">🎉</span>
-                <p className="text-sm font-bold text-emerald-400">Thank you for your review!</p>
-                <p className="text-xs text-zinc-400">Your feedback helps bring more joy to people.</p>
-              </div>
-            ) : (
-              <form onSubmit={handleReviewSubmit} className="space-y-3.5">
-                {err && <p className="text-xs text-red-400">{err}</p>}
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Your Name</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Rahul Sharma"
-                    className="w-full px-3 py-2 rounded-xl text-sm text-white outline-none"
-                    style={{ background: "#0A0A0E", border: "1px solid rgba(255,184,0,0.15)" }}
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Gift Product</label>
-                  <select
-                    value={product}
-                    onChange={(e) => setProduct(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl text-sm text-white outline-none"
-                    style={{ background: "#0A0A0E", border: "1px solid rgba(255,184,0,0.15)" }}
-                  >
-                    <option value="T-Shirt">T-Shirt</option>
-                    <option value="Coffee Mug">Coffee Mug</option>
-                    <option value="Beer Mug">Beer Mug</option>
-                    <option value="Cushion">Cushion</option>
-                    <option value="Water Bottle">Water Bottle</option>
-                    <option value="Face Mask">Face Mask</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Rating</label>
-                  <div className="flex gap-2">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <button
-                        type="button"
-                        key={s}
-                        onClick={() => setRating(s)}
-                        className="text-2xl transition-transform hover:scale-110"
-                        style={{ color: s <= rating ? "#FFB800" : "#333344" }}
-                      >
-                        ★
-                      </button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Your Story / Review</label>
-                  <textarea
-                    required
-                    rows={3}
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    placeholder="How did the recipient react when they scanned the QR? 😭❤️"
-                    className="w-full px-3 py-2 rounded-xl text-sm text-white outline-none"
-                    style={{ background: "#0A0A0E", border: "1px solid rgba(255,184,0,0.15)" }}
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full py-2.5 rounded-xl font-bold text-sm transition-all hover:scale-[1.01]"
-                  style={{
-                    background: "linear-gradient(135deg, #FFD700 0%, #FFB800 100%)",
-                    color: "#0A0A0B",
-                  }}
-                >
-                  {submitting ? "Submitting…" : "Post Review"}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      )}
     </section>
   );
 }

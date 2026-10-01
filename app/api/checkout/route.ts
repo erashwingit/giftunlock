@@ -82,6 +82,7 @@ export async function POST(req: NextRequest) {
       mediaUrls = [],
       personalMessage,
       promoCode,
+      hasGiftBox,
     } = body as {
       customerName:    string;
       customerPhone:   string;
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
       mediaUrls:       string[];
       personalMessage?: string;
       promoCode?:      string;
+      hasGiftBox?:     boolean;
     };
 
     /* ── Validate ──────────────────────────────────────── */
@@ -102,9 +104,11 @@ export async function POST(req: NextRequest) {
     }
 
     /* ── Pricing ────────────────────────────────────────── */
+    const GIFT_BOX_PRICE = 199;
     const secureSlug = generateSlug(8);
     const base       = BASE_PRICES[productType] ?? 899;
-    const subtotal   = tier === "NFC VIP" ? base + NFC_ADDON : base;
+    let subtotal     = tier === "NFC VIP" ? base + NFC_ADDON : base;
+    if (hasGiftBox) subtotal += GIFT_BOX_PRICE;
 
     const supabase = createAdminClient();
 
@@ -150,7 +154,7 @@ export async function POST(req: NextRequest) {
         product_type:      productType,
         product_size:      productSize ?? null,
         tier,
-        occasion:          occasion ?? null,
+        occasion:          hasGiftBox ? `${occasion ? occasion + " · " : ""}[🎁 Luxury Gift Box]` : occasion ?? null,
         media_urls:        mediaUrls,
         personal_message:  personalMessage ?? null,
         promo_code:        appliedCode || null,

@@ -41,6 +41,8 @@ export interface Order {
   secure_slug:           string;
   payment_status:        string;
   order_status:          "pending" | "processing" | "fulfilled" | null;
+  tracking_number?:      string | null;
+  courier_name?:         string | null;
   razorpay_order_id:     string | null;
   destination_video_url: string | null;
   artistic_qr_url:       string | null;
@@ -59,14 +61,4 @@ export interface PromoCode {
   created_at: string;
 }
 
-/** Customer review row type */
-export interface Review {
-  id:            string;
-  order_slug?:   string | null;
-  customer_name: string;
-  rating:        number;
-  product_type?: string | null;
-  comment:       string;
-  created_at:    string;
-}
 

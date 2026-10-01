@@ -19,6 +19,8 @@ const ALLOWED_FIELDS = [
   "artistic_qr_url",
   "payment_status",
   "order_status",
+  "tracking_number",
+  "courier_name",
 ] as const;
 
 /**

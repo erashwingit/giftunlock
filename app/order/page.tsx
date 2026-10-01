@@ -32,6 +32,7 @@ interface FormState {
   city: string;
   state: string;
   pincode: string;
+  hasGiftBox: boolean;
 }
 
 const INITIAL: FormState = {
@@ -42,6 +43,7 @@ const INITIAL: FormState = {
   promoCode: "", discountAmount: 0, finalTotal: 0,
   customerName: "", customerPhone: "", customerEmail: "",
   addressLine1: "", city: "", state: "", pincode: "",
+  hasGiftBox: false,
 };
 
 /* ─── Pricing ───────────────────────────────────────────── */
@@ -50,8 +52,9 @@ const BASE_PRICES: Record<string, number> = {
   "Coffee Mug": 699, "Water Bottle": 899, "Face Mask": 499,
 };
 const NFC_ADDON = 800;
-function getPrice(product: string, tier: string) {
-  return (BASE_PRICES[product] ?? 0) + (tier === "NFC VIP" ? NFC_ADDON : 0);
+const GIFT_BOX_PRICE = 199;
+function getPrice(product: string, tier: string, hasGiftBox = false) {
+  return (BASE_PRICES[product] ?? 0) + (tier === "NFC VIP" ? NFC_ADDON : 0) + (hasGiftBox ? GIFT_BOX_PRICE : 0);
 }
 
 const PRODUCTS_WITH_SIZE: readonly string[] = ["T-Shirt"];
@@ -680,10 +683,11 @@ function getQrStyle(occasion: string): string {
 }
 
 /* ─── Step 6: Review & Pay ──────────────────────────────── */
-function Step6Review({ form, onPay, loading, error, setPromo }:
+function Step6Review({ form, onPay, loading, error, setPromo, setGiftBox }:
   { form: FormState; onPay: () => void; loading: string | null; error: string | null;
-    setPromo: (code: string, discount: number, final: number) => void }) {
-  const subtotal = getPrice(form.productType, form.tier);
+    setPromo: (code: string, discount: number, final: number) => void;
+    setGiftBox: (v: boolean) => void }) {
+  const subtotal = getPrice(form.productType, form.tier, form.hasGiftBox);
   const effectiveTotal = form.discountAmount > 0 ? form.finalTotal : subtotal;
   const [promoInput, setPromoInput]   = useState("");
   const [promoLoading, setPromoLoading] = useState(false);
@@ -733,6 +737,35 @@ function Step6Review({ form, onPay, loading, error, setPromo }:
         <Row label="Media files"  value={`${form.mediaFiles.length} file${form.mediaFiles.length !== 1 ? "s" : ""}`} />
         <Row label="Shipping to"  value={`${form.customerName}, ${form.city}, ${form.pincode}`} />
         <Row label="Phone"        value={form.customerPhone} />
+        {form.hasGiftBox && <Row label="Add-on" value="Luxury Gift Box (+₹199)" accent />}
+
+        {/* ── Add-On Upsell Card ────────────────────────── */}
+        <div
+          className="my-3 p-3.5 rounded-xl border flex items-center justify-between gap-3 transition-colors"
+          style={{
+            background: form.hasGiftBox ? "rgba(255,184,0,0.08)" : "rgba(255,255,255,0.02)",
+            borderColor: form.hasGiftBox ? "rgba(255,184,0,0.3)" : "rgba(255,255,255,0.06)",
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🎀</span>
+            <div>
+              <p className="text-xs font-bold text-white">Luxury Wooden Gift Box & Ribbon</p>
+              <p className="text-[11px]" style={{ color: "#9B9BAA" }}>Includes wax seal & heartfelt greeting card (+₹199)</p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setGiftBox(!form.hasGiftBox)}
+            className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all shrink-0"
+            style={{
+              background: form.hasGiftBox ? "#22c55e" : "rgba(255,184,0,0.15)",
+              color: form.hasGiftBox ? "#fff" : "#FFB800",
+            }}
+          >
+            {form.hasGiftBox ? "✓ Added" : "+ Add ₹199"}
+          </button>
+        </div>
 
         {/* ── Promo code input ──────────────────────────── */}
         {!form.promoCode ? (
@@ -873,6 +906,7 @@ export default function OrderPage() {
   const setFiles = (files: File[]) => setFormState(p => ({ ...p, mediaFiles: files }));
   const setPromo = (code: string, discount: number, final: number) =>
     setFormState(p => ({ ...p, promoCode: code, discountAmount: discount, finalTotal: final }));
+  const setGiftBox = (v: boolean) => setFormState(p => ({ ...p, hasGiftBox: v }));
 
   const validate = (): string | null => {
     switch (step) {
@@ -913,7 +947,8 @@ export default function OrderPage() {
           shippingAddress, productType: form.productType, productSize: form.productSize || null,
           tier: form.tier, occasion: occasionNote || null, mediaUrls,
           personalMessage: form.personalMessage.trim() || null,
-          promoCode: form.promoCode || null }),
+          promoCode: form.promoCode || null,
+          hasGiftBox: form.hasGiftBox }),
       });
 
       const data = await res.json();
@@ -936,7 +971,12 @@ export default function OrderPage() {
         order_id: data.orderId,
         prefill: { name: form.customerName, contact: form.customerPhone },
         theme: { color: "#FFB800" },
-        modal: { ondismiss: () => setLoading(null) },
+        modal: {
+          ondismiss: () => {
+            setLoading(null);
+            setError("Payment was not completed. Your memory order details are saved — need help? Chat with us on WhatsApp anytime!");
+          },
+        },
         handler: () => {
           setLoading(null);
           router.push(`/order/success?slug=${data.secureSlug}&product=${encodeURIComponent(form.productType)}&tier=${encodeURIComponent(form.tier)}&name=${encodeURIComponent(form.customerName)}`);
@@ -957,7 +997,7 @@ export default function OrderPage() {
       case 3: return <Step3Media           form={form} setFiles={setFiles} setStr={setStr} />;
       case 4: return <Step4Personalization form={form} set={set} />;
       case 5: return <Step5Shipping        form={form} set={set} fieldErrors={fieldErrors} setFieldErrors={setFieldErrors} />;
-      case 6: return <Step6Review          form={form} onPay={handlePay} loading={loading} error={error} setPromo={setPromo} />;
+      case 6: return <Step6Review          form={form} onPay={handlePay} loading={loading} error={error} setPromo={setPromo} setGiftBox={setGiftBox} />;
     }
   };
 

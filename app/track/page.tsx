@@ -8,14 +8,18 @@
 
 import { useState, FormEvent } from "react";
 import { getWhatsAppOrderHelpUrl, getWhatsAppSupportUrl } from "@/lib/whatsapp";
+import { getCourierTrackingUrl } from "@/lib/shipping";
 
 interface OrderInfo {
-  payment_status: string;
-  product_type:   string;
-  tier:           string;
+  payment_status:   string;
+  product_type:     string;
+  tier:             string;
+  order_status?:    string;
+  tracking_number?: string | null;
+  courier_name?:    string | null;
   // customer_name intentionally omitted — not returned by public /api/order-status (GDPR/DPDP)
-  secure_slug?:   string;
-  created_at?:    string;
+  secure_slug?:     string;
+  created_at?:      string;
 }
 
 const PRODUCTION_HOURS = 48;
@@ -177,6 +181,31 @@ export default function TrackPage() {
                 />
               )}
             </div>
+
+            {/* Courier Tracking Details */}
+            {order.tracking_number && (
+              <div className="rounded-xl p-3 space-y-2" style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.2)" }}>
+                <div className="flex justify-between items-center text-xs">
+                  <span style={{ color: "#9B9BAA" }}>Courier Partner</span>
+                  <span className="font-semibold text-white">{order.courier_name || "Express Delivery"}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span style={{ color: "#9B9BAA" }}>AWB / Tracking ID</span>
+                  <span className="font-mono font-bold text-blue-400">{order.tracking_number}</span>
+                </div>
+                {getCourierTrackingUrl(order.courier_name, order.tracking_number) && (
+                  <a
+                    href={getCourierTrackingUrl(order.courier_name, order.tracking_number)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block text-center py-2 rounded-lg text-xs font-bold transition-all hover:opacity-90"
+                    style={{ background: "#2563eb", color: "#ffffff" }}
+                  >
+                    🚚 Track Package on {order.courier_name || "Courier"} Site →
+                  </a>
+                )}
+              </div>
+            )}
 
             {/* Play link (only if paid) */}
             {order.payment_status === "paid" && order.secure_slug && (
