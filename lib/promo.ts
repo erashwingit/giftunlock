@@ -1,11 +1,5 @@
 /** Shared promo-code logic — used by /api/apply-promo and /api/checkout */
 
-export const PROMO_CODES: Record<string, { type: "flat" | "percent"; value: number }> = {
-  FIRST100: { type: "flat",    value: 100 },
-  HOLI2026: { type: "percent", value: 15  },
-  GIFTNOW:  { type: "flat",    value: 50  },
-};
-
 export interface PromoResult {
   valid: boolean;
   discountAmount: number;
@@ -13,9 +7,7 @@ export interface PromoResult {
   message: string;
 }
 
-export function applyPromo(code: string, orderTotal: number): PromoResult {
-  const promo = PROMO_CODES[code.toUpperCase().trim()];
-
+export function applyPromo(promo: { type: "flat" | "percent"; value: number } | null, code: string, orderTotal: number): PromoResult {
   if (!promo) {
     return { valid: false, discountAmount: 0, finalTotal: orderTotal, message: "Invalid or expired code" };
   }

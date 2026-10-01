@@ -7,6 +7,8 @@ const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://giftunlock.in"),
+  alternates: { canonical: "/" },
   title: "GiftUnlock.in — Unlock the Memory They Will Never Forget",
   description:
     "Turn your photos & videos into a premium QR memory gift. T-shirts, mugs, hoodies, cushions. Ships in 48hrs across India. 4.9★ rated.",
@@ -42,6 +44,25 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              "name": "GiftUnlock",
+              "url": "https://giftunlock.in",
+              "description": "Turn your photos & videos into a premium QR memory gift. T-shirts, mugs, cushions. Ships in 48hrs across India.",
+              "contactPoint": {
+                "@type": "ContactPoint",
+                "contactType": "customer service",
+                "availableLanguage": "English"
+              }
+            })
+          }}
+        />
+      </head>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-dark-900 text-white`}>
         {children}
         <Analytics />

@@ -34,6 +34,9 @@ export async function middleware(request: NextRequest) {
   const expected = await computeAdminToken();
 
   if (!token || !expected || token !== expected) {
+    if (pathname.startsWith("/api/admin")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const loginUrl = new URL("/admin/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

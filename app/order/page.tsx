@@ -7,7 +7,7 @@ import { formatPrice } from "@/lib/utils";
 import {
   ArrowLeft, ArrowRight, CheckCircle2, Upload, X, Lock,
   Sparkles, Gift, Zap, Image, Film, MapPin, User, Phone,
-  AlertCircle, Loader2, Shield, Calendar,
+  AlertCircle, Loader2, Shield, Calendar, Mail
 } from "lucide-react";
 
 /* ─── Types ─────────────────────────────────────────────── */
@@ -26,6 +26,7 @@ interface FormState {
   finalTotal: number;
   customerName: string;
   customerPhone: string;
+  customerEmail: string;
   addressLine1: string;
   city: string;
   state: string;
@@ -38,7 +39,7 @@ const INITIAL: FormState = {
   mediaFiles: [],
   occasion: "", recipientName: "", occasionDate: "", wishText: "", personalMessage: "",
   promoCode: "", discountAmount: 0, finalTotal: 0,
-  customerName: "", customerPhone: "",
+  customerName: "", customerPhone: "", customerEmail: "",
   addressLine1: "", city: "", state: "", pincode: "",
 };
 
@@ -503,6 +504,11 @@ const SHIP_VALIDATORS: Record<string, (v: string) => string> = {
       return "Enter a valid 10-digit Indian mobile number";
     return "";
   },
+  customerEmail: (v) => {
+    if (!v.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()))
+      return "Enter a valid email address";
+    return "";
+  },
   addressLine1: (v) => {
     const t = v.trim();
     if (t.length < 10) return "Please enter a complete address";
@@ -525,7 +531,7 @@ const SHIP_VALIDATORS: Record<string, (v: string) => string> = {
 export type ShippingErrors = Partial<Record<keyof FormState, string>>;
 
 export function validateShippingFields(form: FormState): ShippingErrors {
-  const keys = ["customerName", "customerPhone", "addressLine1", "city", "state", "pincode"] as const;
+  const keys = ["customerName", "customerPhone", "customerEmail", "addressLine1", "city", "state", "pincode"] as const;
   const errors: ShippingErrors = {};
   for (const key of keys) {
     const msg = SHIP_VALIDATORS[key]?.(form[key] as string) ?? "";
@@ -600,6 +606,10 @@ function Step5Shipping({ form, set, fieldErrors, setFieldErrors }:
           type="tel" inputMode="numeric"
           icon={Phone} value={form.customerPhone} error={fieldErrors.customerPhone}
           onChange={v => set("customerPhone", v)} onBlur={() => blurValidate("customerPhone")} />
+        <ShippingField label="Email (for order updates)" placeholder="your@email.com"
+          type="email"
+          icon={Mail} value={form.customerEmail} error={fieldErrors.customerEmail}
+          onChange={v => set("customerEmail", v)} onBlur={() => blurValidate("customerEmail")} />
       </div>
       <ShippingField label="Address Line 1" placeholder="Flat no, Street, Locality, Area"
         icon={MapPin} value={form.addressLine1} error={fieldErrors.addressLine1}
@@ -891,7 +901,7 @@ export default function OrderPage() {
 
       const res = await fetch("/api/checkout", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customerName: form.customerName, customerPhone: form.customerPhone,
+        body: JSON.stringify({ customerName: form.customerName, customerPhone: form.customerPhone, customer_email: form.customerEmail,
           shippingAddress, productType: form.productType, productSize: form.productSize || null,
           tier: form.tier, occasion: occasionNote || null, mediaUrls,
           personalMessage: form.personalMessage.trim() || null,

@@ -6,9 +6,7 @@ import { isValidAdminToken, ADMIN_COOKIE_NAME } from "@/lib/admin-auth";
 async function isAdmin(req: NextRequest): Promise<boolean> {
   const cookieToken = req.cookies.get(ADMIN_COOKIE_NAME)?.value;
   if (await isValidAdminToken(cookieToken)) return true;
-  const secret =
-    req.headers.get("x-admin-secret") ??
-    req.nextUrl.searchParams.get("secret");
+  const secret = req.headers.get("x-admin-secret");
   return !!process.env.ADMIN_SECRET && secret === process.env.ADMIN_SECRET;
 }
 

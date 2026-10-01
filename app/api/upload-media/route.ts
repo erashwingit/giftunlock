@@ -5,7 +5,7 @@ import { createAdminClient } from '@/lib/supabase';
 const ALLOWED_MIME_PREFIXES = ["image/", "video/"];
 
 /** Max files per request to prevent abuse */
-const MAX_FILES = 20;
+const MAX_FILES = 3;
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     if (files.length > MAX_FILES) {
       return NextResponse.json(
-        { error: `Too many files. Maximum ${MAX_FILES} per request.` },
+        { error: "Maximum 3 files allowed per upload" },
         { status: 400 }
       );
     }

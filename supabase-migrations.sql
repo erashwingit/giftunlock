@@ -55,3 +55,6 @@ $$;
 -- ALTER TABLE promo_codes ENABLE ROW LEVEL SECURITY;
 -- CREATE POLICY "service role only" ON promo_codes
 --   USING (auth.role() = 'service_role');
+
+-- Add customer email for order confirmation notifications
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_email TEXT;

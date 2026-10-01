@@ -73,6 +73,7 @@ export async function POST(req: NextRequest) {
     const {
       customerName,
       customerPhone,
+      customer_email,
       shippingAddress,
       productType,
       productSize,
@@ -84,6 +85,7 @@ export async function POST(req: NextRequest) {
     } = body as {
       customerName:    string;
       customerPhone:   string;
+      customer_email?: string;
       shippingAddress: string;
       productType:     string;
       productSize?:    string;
@@ -95,7 +97,7 @@ export async function POST(req: NextRequest) {
     };
 
     /* ── Validate ──────────────────────────────────────── */
-    if (!customerName || !customerPhone || !shippingAddress || !productType || !tier) {
+    if (!customerName || !customerPhone || !customer_email || !shippingAddress || !productType || !tier) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -143,6 +145,7 @@ export async function POST(req: NextRequest) {
       .insert({
         customer_name:     customerName,
         customer_phone:    customerPhone,
+        customer_email:    customer_email,
         shipping_address:  shippingAddress,
         product_type:      productType,
         product_size:      productSize ?? null,

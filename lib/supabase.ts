@@ -1,23 +1,25 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl    = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder-anon-key";
 
 /** Public browser-safe client */
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 /** Server-only admin client (bypasses RLS) */
 export function createAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession:   false,
-      },
-    }
-  );
+  const url =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY || "placeholder-service-key";
+  return createClient(url, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
 }
 
 /** Order row type matching the Supabase schema */
@@ -25,6 +27,7 @@ export interface Order {
   id:                    string;
   customer_name:         string;
   customer_phone:        string;
+  customer_email?:       string;
   shipping_address:      string;
   product_type:          string;
   product_size:          string | null;

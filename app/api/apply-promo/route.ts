@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase";
 import type { PromoResult } from "@/lib/promo";
 
+const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
+const RATE_LIMIT = 10; // max attempts
+const RATE_WINDOW = 60_000; // 1 minute
+
 /**
  * POST /api/apply-promo
  * Body: { code: string, orderTotal: number }
@@ -13,6 +17,22 @@ import type { PromoResult } from "@/lib/promo";
  */
 export async function POST(req: NextRequest) {
   try {
+    const ip = req.headers.get('x-forwarded-for') || 'unknown';
+    const now = Date.now();
+    const rateData = rateLimitMap.get(ip) || { count: 0, resetAt: now + RATE_WINDOW };
+
+    if (now > rateData.resetAt) {
+      rateData.count = 0;
+      rateData.resetAt = now + RATE_WINDOW;
+    }
+
+    if (rateData.count >= RATE_LIMIT) {
+      return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    }
+
+    rateData.count++;
+    rateLimitMap.set(ip, rateData);
+
     const { code, orderTotal } = (await req.json()) as {
       code: string;
       orderTotal: number;

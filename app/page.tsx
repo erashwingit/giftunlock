@@ -88,12 +88,35 @@ function Navbar() {
 }
 
 /* ─── URGENCY BANNER ─────────────────────────────────────── */
+function getCurrentBanner(): { text: string; deadline: string } | null {
+  const now = new Date();
+  const month = now.getMonth(); // 0-indexed
+  const day = now.getDate();
+  
+  // Diwali season (October)
+  if (month === 9) return { text: "🪔 Diwali is coming! Order your personalized memory gift now", deadline: "Order by Oct 15 for guaranteed delivery" };
+  // Christmas (December)
+  if (month === 11 && day <= 20) return { text: "🎄 Christmas Special! Gift a memory they'll treasure forever", deadline: "Order by Dec 20 for guaranteed delivery" };
+  // Valentine's Day (February)
+  if (month === 1 && day <= 10) return { text: "💝 Valentine's Day Special! Unlock a memory for your loved one", deadline: "Order by Feb 10 for guaranteed delivery" };
+  // Holi (March)
+  if (month === 2 && day <= 10) return { text: "🎨 Holi Special! Color their world with a memory gift", deadline: "Order by Mar 10 for guaranteed delivery" };
+  // Mother's Day (May)
+  if (month === 4 && day <= 8) return { text: "🌸 Mother's Day is May 11 — Gift her a memory she'll never forget", deadline: "Order by May 8 for guaranteed delivery" };
+  // Raksha Bandhan (August)
+  if (month === 7 && day <= 15) return { text: "🪢 Raksha Bandhan Special! Celebrate the bond with a memory gift", deadline: "Order now for delivery before Rakhi" };
+  // Default
+  return { text: "🎁 Free Artistic QR Code with every order — Limited time!", deadline: "Ships within 48 hours across India" };
+}
+
 function UrgencyBanner() {
   const [dismissed, setDismissed] = useState(false);
   if (dismissed) return null;
+  const banner = getCurrentBanner();
+  if (!banner) return null;
   return (
     <div style={{ background: "#7c3aed", color: "#ffffff", fontSize: "14px", padding: "8px 16px", width: "100%", display: "flex", alignItems: "center", justifyContent: "center", position: "relative" }}>
-      <span>🎉 Mother&apos;s Day is May 11 — Order by May 8 to guarantee delivery!</span>
+      <span>{banner.text} — {banner.deadline}</span>
       <button
         onClick={() => setDismissed(true)}
         aria-label="Dismiss banner"
@@ -299,17 +322,16 @@ function SplitScreenDemo() {
               style={{ border: "3px solid rgba(255,184,0,0.45)", boxShadow: "0 0 60px rgba(255,184,0,0.25)", background: "#0d0d14" }}>
               {/* Notch */}
               <div className="absolute top-2 left-1/2 -translate-x-1/2 w-16 h-2 rounded-full z-10" style={{ background: "#252530" }} />
-              {/*
-                TODO: Replace DEMO_VIDEO_ID with the real GiftUnlock demo YouTube unlisted video ID.
-                Example: src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1&loop=1&playlist=dQw4w9WgXcQ&controls=0&rel=0"
-              */}
-              <iframe
-                src="https://www.youtube.com/embed/DEMO_VIDEO_ID?autoplay=1&mute=1&loop=1&playlist=DEMO_VIDEO_ID&controls=0&rel=0"
-                style={{ borderRadius: 20, width: "100%", aspectRatio: "9/16", display: "block", marginTop: 4 }}
-                allow="autoplay; encrypted-media"
-                allowFullScreen
-                title="GiftUnlock — real memory demo video"
-              />
+              {/* Replace DEMO_VIDEO_ID with actual YouTube video ID when ready */}
+              {"DEMO_VIDEO_ID" !== "DEMO_VIDEO_ID" && (
+                <iframe
+                  src="https://www.youtube.com/embed/DEMO_VIDEO_ID?autoplay=1&mute=1&loop=1&playlist=DEMO_VIDEO_ID&controls=0&rel=0"
+                  style={{ borderRadius: 20, width: "100%", aspectRatio: "9/16", display: "block", marginTop: 4 }}
+                  allow="autoplay; encrypted-media"
+                  allowFullScreen
+                  title="GiftUnlock — real memory demo video"
+                />
+              )}
             </div>
             <p className="text-center text-sm mt-4 font-semibold" style={{ color: "#9B9BAA" }}>
               Real memory. Real reaction. ❤️
